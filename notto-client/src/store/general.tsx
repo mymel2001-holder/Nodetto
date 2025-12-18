@@ -3,7 +3,7 @@ import { create } from "zustand"
 type Store = {
   userId: number | null
 
-  setUserId: (newUserId: number) => void
+  setUserId: (newUserId: number | null) => void
 }
 
 export const useGeneral = create<Store>(

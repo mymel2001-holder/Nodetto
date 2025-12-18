@@ -1,40 +1,49 @@
-// import { useEffect, useState } from "react";
-// import { useGeneral } from "../../store/general"
-// import { invoke } from "@tauri-apps/api/core";
-// import CreateAccount from "./CreateAccount";
+import { useState } from "react";
+import Login from "./Login";
+import CreateAccount from "./CreateAccount";
 
-// type User = {
-//   id: number
-//   username: string,
-// }
+export default function LoginHome() {
+  const [view, setView] = useState<"login" | "create">("login");
 
-// export default function LoginHome() {
-//   const { userId, setUserId } = useGeneral();
-  
-//   const [users, setUsers] = useState<User[]|null>(null);
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-6">
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Notto</h1>
+          <p className="text-sm md:text-base text-slate-400">Secure, encrypted note-taking</p>
+        </div>
 
-//   const [createAccount, setCreateAccount] = useState<boolean>(false);
+        <div className="bg-slate-800 rounded-lg shadow-xl p-4 md:p-6 border border-slate-700">
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => setView("login")}
+              className={`flex-1 py-2 px-3 md:px-4 rounded-md font-medium text-sm md:text-base transition-colors ${
+                view === "login"
+                  ? "bg-blue-600 text-white"
+                  : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+              }`}
+            >
+              Login
+            </button>
+            <button
+              onClick={() => setView("create")}
+              className={`flex-1 py-2 px-3 md:px-4 rounded-md font-medium text-sm md:text-base transition-colors ${
+                view === "create"
+                  ? "bg-blue-600 text-white"
+                  : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+              }`}
+            >
+              Create Account
+            </button>
+          </div>
 
-//   useEffect(() => {
-//     invoke("get_users").then((users) => setUsers(users as User[]))
-//       .catch((e) => console.error(e));
-//   }, [])
+          {view === "login" ? <Login /> : <CreateAccount />}
+        </div>
 
-//   async function selectUser(id: number) {
-//     invoke("set_user", { id: id }).catch((e) => console.error(e));
-
-//     setUserId(id);
-//   }
-
-  // return (
-  //   <div>
-  //     <button className="h-10 w-min p-2 bg-red-600 cursor-pointer" onClick={() => setCreateAccount(true)}>create_account</button>
-
-  //     {/* {
-  //       createAccount ? <CreateAccount/>
-  //       : <Login/>
-  //     } */}
-
-  //   </div>
-  // )
-// }
+        <p className="text-center text-slate-500 text-xs md:text-sm mt-4">
+          End-to-end encrypted • Zero-knowledge architecture
+        </p>
+      </div>
+    </div>
+  );
+}
