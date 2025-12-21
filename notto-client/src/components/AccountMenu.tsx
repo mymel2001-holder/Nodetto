@@ -32,9 +32,7 @@ export default function AccountMenu() {
   function handleLogout() {
     // Clear user session
     setUser(null);
-    invoke("set_logged_user", { username: "" }).catch((e) => console.error(e));
-
-    // TODO: Also clear tokens and encrypted data from memory
+    invoke("logout").catch((e) => console.error(e));
   }
 
   return (

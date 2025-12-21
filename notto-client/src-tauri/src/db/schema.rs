@@ -133,6 +133,10 @@ impl Note {
 
         Ok(notes)
     }
+
+    pub fn delete_from_user(conn: &Connection, id_user: u32) {
+        conn.execute("DELETE FROM note WHERE id_user = ?", (id_user, )).unwrap();
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -241,8 +245,14 @@ impl User {
     
     pub fn update(&self, conn: &Connection) -> Result<(), Box<dyn std::error::Error>> {
         conn.execute("UPDATE user SET username = ?, master_encryption_key = ?, salt_recovery_data = ?, mek_recovery_nonce = ?, encrypted_mek_recovery = ?, token = ?, instance = ? WHERE id = ?",
-        (&self.username, &self.master_encryption_key.to_vec(), &self.salt_recovery_data, &self.mek_recovery_nonce, &self.encrypted_mek_recovery, &self.token, &self.id, &self.instance))?;
+        (&self.username, &self.master_encryption_key.to_vec(), &self.salt_recovery_data, &self.mek_recovery_nonce, &self.encrypted_mek_recovery, &self.token, &self.instance, &self.id))?;
         
+        Ok(())
+    }
+
+    pub fn delete(&self, conn: &Connection) -> Result<(), Box<dyn std::error::Error>> {
+        conn.execute("DELETE FROM user WHERE id = ?", (&self.id, ))?;
+
         Ok(())
     }
 }

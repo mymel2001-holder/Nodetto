@@ -9,6 +9,11 @@ export default function LoginHome() {
   const [view, setView] = useState<"login" | "create">("login");
   const { user, setUser, allUsers, setAllUsers } = useGeneral();
 
+  async function handleLogBack(user: User) {
+    setUser(user)
+    await invoke("set_logged_user", { username: user.username });
+  }
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
       <div className="w-full max-w-md">
@@ -25,7 +30,7 @@ export default function LoginHome() {
                 .map(user => (
                   // <button className="px-2 bg-blue-600 rounded-2xl text-center">{user.username}</button>
                   <button 
-                    onClick={() => setUser(user)}
+                    onClick={() => handleLogBack(user)}
                     className="py-2 px-3 md:px-4 rounded-md font-medium text-sm md:text-base transition-colors bg-slate-600 hover:bg-blue-600 text-white"
                   >
                     {user.username}

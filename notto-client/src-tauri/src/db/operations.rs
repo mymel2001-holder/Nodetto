@@ -132,3 +132,13 @@ pub fn get_logged_user(conn: &Connection) -> Option<User> {
         None => None,
     }
 }
+
+pub fn logout_user(conn: &Connection, username: String) {
+    let user = User::select(conn, username).unwrap().unwrap();
+
+    Note::delete_from_user(conn, user.id.unwrap());
+
+    user.delete(conn).unwrap();
+
+    Common::delete(conn, "logged".to_string());
+}
