@@ -50,7 +50,7 @@ impl From<Note> for NoteMetadata {
         NoteMetadata {
             id: note.id.unwrap(),
             title: note.title,
-            updated_at: note.updated_at
+            updated_at: note.updated_at*1000 //Convert to TS timestamps
         }
     }
 }
