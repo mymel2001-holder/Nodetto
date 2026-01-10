@@ -88,7 +88,7 @@ pub async fn get_note(state: State<'_, Mutex<AppState>>, id: String) -> Result<N
     let state = state.lock().await;
 
     let conn = state.database.lock().await;
-    
+
     let note = db::operations::get_note(&conn, Uuid::parse_str(&id).unwrap().as_bytes().to_vec(), state.workspace.clone().unwrap().master_encryption_key).unwrap();
 
     Ok(note)

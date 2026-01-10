@@ -33,8 +33,6 @@ pub fn get_note(conn: &Connection, uuid: Vec<u8>, mek: Key<Aes256Gcm>) -> Result
 
     let decrypted_note = crypt::decrypt_note(note, mek).unwrap();
 
-    debug!("note decrypted");
-
     Ok(decrypted_note)
 }
 
@@ -47,7 +45,7 @@ pub fn get_notes(conn: &Connection, id_workspace: u32) -> Result<Vec<Note>, Box<
 pub fn update_note(conn: &Connection, note_data: NoteData, mek: Key<Aes256Gcm>) -> Result<(), Box<dyn std::error::Error>> {
     let (content, nonce) = crypt::encrypt_note(note_data.content, mek).unwrap();
     
-    let mut note = Note::select(conn, note_data.uuid).unwrap().unwrap();
+    let mut note = Note::select(conn, note_data.id).unwrap().unwrap();
 
     note.title = note_data.title;
     note.content = content;

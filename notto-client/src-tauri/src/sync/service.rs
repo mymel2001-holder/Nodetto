@@ -16,8 +16,6 @@ pub async fn run(handle: AppHandle) {
     let mut last_sync = DateTime::<Utc>::MIN_UTC.timestamp();
 
     loop{
-        trace!("Hello, I'm a background service!");
-        
         {
             let state = state.lock().await;
 
@@ -61,7 +59,7 @@ pub async fn run(handle: AppHandle) {
     
                     last_sync = sync;
                 }else {
-                    debug!("Conditions are not respected to sync {state:?}");
+                    // trace!("Conditions are not respected to sync {state:?}");
                 }
             }
         }

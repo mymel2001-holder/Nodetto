@@ -80,14 +80,14 @@ export default function CreateAccount() {
     <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-slate-300 mb-1">
-          Workspace_name
+          Workspace name
         </label>
         <input
           type="text"
           value={workspace_name}
           onChange={(e) => setWorkspacename(e.target.value)}
           className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="Choose a workspace_name"
+          placeholder="Choose a workspace name"
           disabled={loading}
         />
       </div>

@@ -69,12 +69,12 @@ impl Note {
             |row| {
                 Ok(Note{
                     uuid: row.get(0)?,
-                    id_workspace: row.get(2)?,
-                    title: row.get(3)?,
-                    content: row.get(4)?,
-                    nonce: row.get(5)?,
-                    updated_at: row.get(6)?,
-                    synched: row.get(7)?
+                    id_workspace: row.get(1)?,
+                    title: row.get(2)?,
+                    content: row.get(3)?,
+                    nonce: row.get(4)?,
+                    updated_at: row.get(5)?,
+                    synched: row.get(6)?
                 })
             }
         ) {
