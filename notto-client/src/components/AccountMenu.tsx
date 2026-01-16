@@ -8,25 +8,46 @@ export type Workspace = {
   workspace_name: string;
 };
 
+type AuthMode = "login" | "register";
+
 export default function AccountMenu() {
   const { workspace, setWorkspace, allWorkspaces, setShowLogoutWorkspaceConfirm, setSyncStatus, syncStatus } = useGeneral();
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [showWorkspaceMenu, setShowWorkspaceMenu] = useState(false);
-  
+  const [showAuthMenu, setShowAuthMenu] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthMode>("login");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [serverAddress, setServerAddress] = useState("localhost:3000");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState("");
+
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const workspaceMenuRef = useRef<HTMLDivElement>(null);
-  
+  const authMenuRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     listen<syncStatusEnum>('sync-status', (event) => {
       console.log(event.payload)
       setSyncStatus(event.payload)
     })
-  }, []) 
+  }, [])
 
   // Handle click outside
-  //TODO: do this better
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
+      // Check if click is outside auth menu
+      if (authMenuRef.current && !authMenuRef.current.contains(event.target as Node)) {
+        if (showAuthMenu) {
+          setShowAuthMenu(false);
+          resetAuthForm();
+          return;
+        }
+      }
+
       // Check if click is outside workspace menu
       if (workspaceMenuRef.current && !workspaceMenuRef.current.contains(event.target as Node)) {
         if (showWorkspaceMenu) {
@@ -34,7 +55,7 @@ export default function AccountMenu() {
           return;
         }
       }
-      
+
       // Check if click is outside account menu
       if (accountMenuRef.current && !accountMenuRef.current.contains(event.target as Node)) {
         if (showAccountMenu) {
@@ -48,7 +69,54 @@ export default function AccountMenu() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [showAccountMenu, showWorkspaceMenu]);
+  }, [showAccountMenu, showWorkspaceMenu, showAuthMenu]);
+
+  function resetAuthForm() {
+    setUsername("");
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+    setAuthError("");
+    setShowAdvanced(false);
+  }
+
+  function toggleAuthMode() {
+    setAuthMode(authMode === "login" ? "register" : "login");
+    resetAuthForm();
+  }
+
+  async function handleAuthSubmit() {
+    setAuthError("");
+
+    if (!username || !email || !password) {
+      setAuthError("Please fill in all fields");
+      return;
+    }
+
+    if (authMode === "register" && password !== confirmPassword) {
+      setAuthError("Passwords do not match");
+      return;
+    }
+
+    setAuthLoading(true);
+
+    try {
+      if (authMode === "login") {
+        await invoke("login", { username, email, password, server_address: serverAddress });
+      } else {
+        await invoke("register", { username, email, password, server_address: serverAddress });
+      }
+      
+      setShowAuthMenu(false);
+      setShowAccountMenu(false);
+      resetAuthForm();
+      window.location.reload();
+    } catch (e) {
+      setAuthError(e as string || `Failed to ${authMode === "login" ? "login" : "create account"}`);
+    } finally {
+      setAuthLoading(false);
+    }
+  }
 
   async function switchAccount(workspace_name: string) {
     try {
@@ -79,15 +147,15 @@ export default function AccountMenu() {
       {/* Sync Status */}
       <div className="px-2 md:px-3 py-2 flex items-center gap-2 text-xs md:text-sm">
         <div className={`w-2 h-2 rounded-full ${syncStatus === syncStatusEnum.Synched ? "bg-green-500" :
-            syncStatus === syncStatusEnum.Syncing ? "bg-yellow-500 animate-pulse" :
-              "bg-red-500"
+          syncStatus === syncStatusEnum.Syncing ? "bg-yellow-500 animate-pulse" :
+            "bg-red-500"
           }`} />
         <span className="text-slate-400">
           {syncStatus === syncStatusEnum.Synched ? "Synched" :
             syncStatus === syncStatusEnum.Syncing ? "Syncing..." :
-            syncStatus === syncStatusEnum.Offline ? "Offline" :
-            syncStatus === syncStatusEnum.NotConnected ? "Not connected" :
-                "Sync Error"}
+              syncStatus === syncStatusEnum.Offline ? "Offline" :
+                syncStatus === syncStatusEnum.NotConnected ? "Not connected" :
+                  "Sync Error"}
         </span>
       </div>
 
@@ -171,7 +239,153 @@ export default function AccountMenu() {
               </div>
             )}
 
-            {/* Server Actions */}
+            {/* Auth Menu Modal */}
+            {showAuthMenu && (
+              <div ref={authMenuRef} className="fixed bottom-16 left-0 right-0 mx-4 mb-1 bg-slate-800 border-2 border-slate-700 rounded-lg shadow-xl z-50 max-w-md">
+                <div className="p-4">
+                  {/* Header */}
+                  <div className="mb-4">
+                    <h2 className="text-lg font-semibold text-white mb-1">
+                      {authMode === "login" ? "Login to your account" : "Create a new account"}
+                    </h2>
+                    <p className="text-xs text-slate-400">
+                      {authMode === "login" 
+                        ? "Enter your credentials to sync your workspace" 
+                        : "Sign up to sync your data across devices"}
+                    </p>
+                  </div>
+
+                  {/* Error Message */}
+                  {authError && (
+                    <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                      <p className="text-xs text-red-400">{authError}</p>
+                    </div>
+                  )}
+
+                  {/* Form Fields */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-300 mb-1">
+                        Username
+                      </label>
+                      <input
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="johndoe"
+                        disabled={authLoading}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-300 mb-1">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="your@email.com"
+                        disabled={authLoading}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-slate-300 mb-1">
+                        Password
+                      </label>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="••••••••"
+                        disabled={authLoading}
+                      />
+                    </div>
+
+                    {authMode === "register" && (
+                      <div>
+                        <label className="block text-xs font-medium text-slate-300 mb-1">
+                          Confirm Password
+                        </label>
+                        <input
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleAuthSubmit()}
+                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="••••••••"
+                          disabled={authLoading}
+                        />
+                      </div>
+                    )}
+
+                    {/* Advanced Settings */}
+                    <div className="pt-2">
+                      <button
+                        onClick={() => setShowAdvanced(!showAdvanced)}
+                        className="flex items-center gap-2 text-xs text-slate-400 hover:text-slate-300 transition-colors"
+                      >
+                        <svg
+                          className={`w-3 h-3 transition-transform ${showAdvanced ? "rotate-90" : ""}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                        Advanced settings
+                      </button>
+                      
+                      {showAdvanced && (
+                        <div className="mt-3">
+                          <label className="block text-xs font-medium text-slate-300 mb-1">
+                            Server Address
+                          </label>
+                          <input
+                            type="text"
+                            value={serverAddress}
+                            onChange={(e) => setServerAddress(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="localhost:3000"
+                            disabled={authLoading}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={handleAuthSubmit}
+                      disabled={authLoading}
+                      className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                      {authLoading 
+                        ? (authMode === "login" ? "Logging in..." : "Creating account...") 
+                        : (authMode === "login" ? "Login" : "Create Account")}
+                    </button>
+                  </div>
+
+                  {/* Toggle Auth Mode */}
+                  <div className="mt-4 pt-4 border-t border-slate-700">
+                    <button
+                      onClick={toggleAuthMode}
+                      className="w-full text-xs text-slate-400 hover:text-slate-300 transition-colors"
+                    >
+                      {authMode === "login" 
+                        ? "Don't have an account? Create one" 
+                        : "Already have an account? Login"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="border-t border-slate-700 py-1">
               <button
                 onClick={() => setShowWorkspaceMenu(!showWorkspaceMenu)}
@@ -182,15 +396,29 @@ export default function AccountMenu() {
                 </svg>
                 Manage workspaces
               </button>
-              <button
-                // onClick={() => {setShowLogoutWorkspaceConfirm(true); setShowAccountMenu(false)}} //TODO
-                className="w-full px-2 md:px-3 py-2 text-xs md:text-sm text-red-400 hover:bg-slate-700 transition-colors text-left flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                Logout of server
-              </button>
+
+              {/* Server Actions */}
+              {syncStatus == syncStatusEnum.NotConnected ?
+                <button
+                  onClick={() => { setShowAuthMenu(true); setAuthMode("login"); }}
+                  className="w-full px-2 md:px-3 py-2 text-xs md:text-sm text-green-400 hover:bg-slate-700 transition-colors text-left flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Login/create account
+                </button>
+                :
+                <button
+                  // onClick={() => {setShowLogoutWorkspaceConfirm(true); setShowAccountMenu(false)}} //TODO
+                  className="w-full px-2 md:px-3 py-2 text-xs md:text-sm text-red-400 hover:bg-slate-700 transition-colors text-left flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h14M11 20v1a3 3 0 003 3h4a3 3 0 003-3V7a3 3 0 00-3-3h-4a3 3 0 00-3 3v1" />
+                  </svg>
+                  Logout
+                </button>
+              }
             </div>
           </div>
         )}
