@@ -5,7 +5,6 @@ import { useGeneral } from "./store/general";
 import Home from "./components/Home";
 import { Workspace } from "./components/AccountMenu";
 import LogoutWorkspaceConfirmModal from "./components/LogoutWorkspaceConfirmModal";
-import { info } from "@tauri-apps/plugin-log";
 
 function App() {
   const { workspace, setWorkspace, setAllWorkspaces } = useGeneral();
@@ -32,6 +31,8 @@ function App() {
       // Create default workspace
       await invoke("create_workspace", { workspace_name: "workspace 1" })
         .catch((e) => console.error(e));
+
+      await invoke("set_logged_workspace", { workspace_name: "workspace 1" });
     }
 
     backend_workspaces = await invoke("get_workspaces")
@@ -55,10 +56,12 @@ function App() {
 
   return (
     <div className="h-screen w-screen">
+
       {/* Modals */}
       <LogoutWorkspaceConfirmModal />
 
-      {workspace ? <Home /> : <div className="text-center bg-slate-800">Creating workspace...</div>}
+      {!workspace && <div className="flex grow place-items-center place-content-center text-2xl text-center text-white bg-slate-800 min-h-screen backdrop-blur-sm">Creating workspace...</div>}
+      <Home />
 
     </div>
   );

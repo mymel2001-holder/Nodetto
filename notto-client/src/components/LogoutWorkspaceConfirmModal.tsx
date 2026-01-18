@@ -1,29 +1,39 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useGeneral } from "../store/general";
 import { trace } from "@tauri-apps/plugin-log";
+import { Workspace } from "./AccountMenu";
 
 export default function LogoutWorkspaceConfirmModal() {
-  const { showLogoutWorkspaceConfirm, setShowLogoutWorkspaceConfirm, setWorkspace, syncStatus, allWorkspaces } = useGeneral();
+  const { showLogoutWorkspaceConfirm, setShowLogoutWorkspaceConfirm, setWorkspace, syncStatus, allWorkspaces, setAllWorkspaces } = useGeneral();
 
   async function handleLogout() {
     // Clear workspace session
     await invoke("logout").catch((e) => console.error(e));
-    trace("logout curret workspace...")
+    trace("logout current workspace...")
+
+    let backend_workspaces = await invoke("get_workspaces")
+      .then((u) => u as Workspace[])
+      .catch((e) => {
+        console.error(e);
+        return [];
+      });
+
+    setAllWorkspaces(backend_workspaces);
 
     //TODO: This becomes chaotic, logout/login function are everywhere somehow different from each other
-    if (allWorkspaces.length > 0) {
-      trace("setting " + allWorkspaces[0].workspace_name + " as logged workspace")
-      setWorkspace(allWorkspaces[0]);
-      await invoke("set_logged_workspace", { workspace_name: allWorkspaces[0].workspace_name });
+    if (backend_workspaces.length > 0) {
+      trace("setting " + backend_workspaces[0].workspace_name + " as logged workspace")
+      setWorkspace(backend_workspaces[0]);
+      await invoke("set_logged_workspace", { workspace_name: backend_workspaces[0].workspace_name });
     } else {
       trace("No other workspace found, creating a new one")
       await invoke("create_workspace", { workspace_name: "workspace 1" }).catch((e) => console.error(e));
       await invoke("set_logged_workspace", { workspace_name: "workspace 1" });
     }
-
-    window.location.reload();
-
+    
     setShowLogoutWorkspaceConfirm(false);
+    window.location.reload();
+    trace("window reloaded")
   }
 
   return (
