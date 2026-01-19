@@ -236,6 +236,23 @@ pub async fn sync_login(state: State<'_, Mutex<AppState>>, username: String, pas
 
     trace!("mek decrypted");
 
+    // Convert notes using server key
+    let notes = { 
+        let conn = state.database.lock().await;
+        db::operations::get_notes(&conn, workspace.id.unwrap()).unwrap()
+    };
+
+    if !notes.is_empty() {
+        let notes: Vec<NoteData> = notes.into_iter().map(|n| crypt::decrypt_note(n, mek).unwrap()).collect();
+
+        {
+            let conn = state.database.lock().await;
+            notes.into_iter().for_each(|n| db::operations::update_note(&conn, n, mek).unwrap());
+        }
+    }
+
+    trace!("notes converted using server key");
+    
     workspace.master_encryption_key = mek;
     workspace.token = Some(login_data.token);
     workspace.instance = Some(instance);
@@ -248,7 +265,6 @@ pub async fn sync_login(state: State<'_, Mutex<AppState>>, username: String, pas
         
     trace!("db workspace modified");
 
-    
     state.workspace = Some(workspace);
 
     trace!("state modified: {state:?}");

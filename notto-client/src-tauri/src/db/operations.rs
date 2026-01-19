@@ -31,6 +31,7 @@ pub fn create_note(conn: &Connection, id_workspace: u32, title: String, mek: Key
 pub fn get_note(conn: &Connection, uuid: Vec<u8>, mek: Key<Aes256Gcm>) -> Result<NoteData, Box<dyn std::error::Error>> {
     let note = Note::select(conn, uuid).unwrap().unwrap();
 
+    //TODO: decrypt elsewhere?
     let decrypted_note = crypt::decrypt_note(note, mek).unwrap();
 
     Ok(decrypted_note)
