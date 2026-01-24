@@ -300,18 +300,20 @@ pub async fn sync_login(
     trace!("mek decrypted");
 
     // Convert notes using server key
-    let notes = {
+    let notes: Vec<Note> = {
         let conn = state.database.lock().await;
         db::operations::get_notes(&conn, workspace.id.unwrap()).unwrap()
     };
 
-    if !notes.is_empty() {
+    if !notes.is_empty(){
+        //Decrypt note using old mek
         let notes: Vec<NoteData> = notes
             .into_iter()
-            .map(|n| crypt::decrypt_note(n, mek).unwrap())
+            .map(|n| crypt::decrypt_note(n, workspace.master_encryption_key).unwrap())
             .collect();
 
         {
+            //Update notes inside db using new mek
             let conn = state.database.lock().await;
             notes
                 .into_iter()
