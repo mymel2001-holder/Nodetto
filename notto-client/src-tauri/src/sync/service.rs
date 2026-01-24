@@ -25,7 +25,7 @@ pub async fn run(handle: AppHandle) {
     let state = handle.state::<Mutex<AppState>>();
     let mut last_sync = DateTime::<Utc>::MIN_UTC.timestamp();
     loop{
-        {
+        'sync: {
             let state = state.lock().await;
 
             if let Some(workspace) = state.workspace.clone() {
@@ -41,14 +41,17 @@ pub async fn run(handle: AppHandle) {
                                 if e.is_connect() {
                                     handle.emit("sync-status", SyncStatus::Offline).unwrap();
                                     warn!("Couldn't connect to server");
+                                    break 'sync;
                                 }
                                 else{
                                     handle.emit("sync-status", SyncStatus::Error(e.to_string())).unwrap();
-                                    error!("{e}")
+                                    error!("{e}");
+                                    break 'sync;
                                 }
                             }else{
                                 handle.emit("sync-status", SyncStatus::Error(e.to_string())).unwrap();
-                                error!("{e}")
+                                error!("{e}");
+                                break 'sync;
                             }
                         }
                     };
@@ -58,16 +61,19 @@ pub async fn run(handle: AppHandle) {
                         Err(e) => {
                             if let Some(e) = e.downcast_ref::<reqwest::Error>() {
                                 if e.is_connect() {
-                                    warn!("Couldn't connect to server");
                                     handle.emit("sync-status", SyncStatus::Offline).unwrap();
+                                    warn!("Couldn't connect to server");
+                                    break 'sync;
                                 }
                                 else{
                                     handle.emit("sync-status", SyncStatus::Error(e.to_string())).unwrap();
-                                    error!("{e}")
+                                    error!("{e}");
+                                    break 'sync;
                                 }
                             }else{
                                 handle.emit("sync-status", SyncStatus::Error(e.to_string())).unwrap();
-                                error!("{e}")
+                                error!("{e}");
+                                break 'sync;
                             }
                         }
                     };
