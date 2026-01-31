@@ -1,43 +1,49 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 // #[tauri::command(rename_all = "snake_case")]
 
-use std::{time::Duration, thread::sleep};
+use std::{env, thread::sleep, time::Duration};
 
-use tokio::{sync::Mutex};
+use tokio::sync::Mutex;
 
 use aes_gcm::{Aes256Gcm, Key};
 use rusqlite::Connection;
 use tauri::Manager;
-use tauri_plugin_log::log::debug;
+use tauri_plugin_log::log::{LevelFilter, debug};
 
 use crate::db::schema;
 
 mod commands;
-mod db;
 mod crypt;
+mod db;
 mod sync;
 
 #[derive(Debug)]
 pub struct AppState {
-  database: Mutex<Connection>,
-  workspace: Option<db::schema::Workspace>,
+    database: Mutex<Connection>,
+    workspace: Option<db::schema::Workspace>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let log_level = env::var("NOTTO_LOG")
+        .ok()
+        .and_then(|s| s.parse::<LevelFilter>().ok())
+        .unwrap_or(LevelFilter::Info);
+
     tauri::Builder::default()
         .plugin(
             tauri_plugin_log::Builder::new()
-                .level(tauri_plugin_log::log::LevelFilter::Trace)
+                // .level(tauri_plugin_log::log::LevelFilter::Trace)
+                .level(log_level)
                 .build(),
         )
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let db_path = app.path().app_data_dir().unwrap().join("notto.db");
 
-            let app_state = Mutex::new(AppState{ 
+            let app_state = Mutex::new(AppState {
                 database: db::init(db_path).unwrap(),
-                workspace: None
+                workspace: None,
             });
 
             let app_handle_clone = app.app_handle().clone();
@@ -61,7 +67,7 @@ pub fn run() {
             commands::sync_login,
             commands::sync_logout,
             commands::logout,
-            ])
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
