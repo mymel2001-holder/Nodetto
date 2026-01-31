@@ -23,7 +23,7 @@ pub enum SyncStatus {
 
 pub async fn run(handle: AppHandle) {
     let state = handle.state::<Mutex<AppState>>();
-    let mut last_sync = DateTime::<Utc>::MIN_UTC.timestamp();
+    let mut sync = DateTime::<Utc>::MIN_UTC.timestamp();
     loop{
         'sync: {
             let state = state.lock().await;
@@ -31,11 +31,11 @@ pub async fn run(handle: AppHandle) {
             if let Some(workspace) = state.workspace.clone() {
                 if workspace.id.is_some() && workspace.token.is_some() && workspace.instance.is_some() {
                     //Update sync infos
-                    let sync = Local::now().to_utc().timestamp();
+                    
                     trace!("sync ts: {sync}");
     
                     //Sync
-                    match receive_latest_notes(&state, last_sync, &handle).await {
+                    match receive_latest_notes(&state, sync, &handle).await {
                         Ok(_) => {},
                         Err(e) => {
                             if let Some(e) = e.downcast_ref::<reqwest::Error>() {
@@ -81,11 +81,11 @@ pub async fn run(handle: AppHandle) {
     
                     handle.emit("sync-status", SyncStatus::Synched).unwrap();
                     
-                    last_sync = sync;
+                    sync = Local::now().to_utc().timestamp();
                 }else {
                     // trace!("Conditions are not respected to sync {state:?}");
                     handle.emit("sync-status", SyncStatus::NotConnected).unwrap();
-                    last_sync = DateTime::<Utc>::MIN_UTC.timestamp();
+                    sync = DateTime::<Utc>::MIN_UTC.timestamp();
                 }
             }
         }
@@ -110,11 +110,9 @@ pub async fn receive_latest_notes(state: &MutexGuard<'_, AppState>, last_sync: i
     let notes = sync::operations::select_notes(params, workspace.instance.unwrap()).await?;
 
     if !notes.is_empty() {
-        // trace!("notes received : {notes:?}");
-        
         // Put new notes to database
         notes.into_iter().for_each(|note| {
-            debug!("note received: {}", note.title);
+            debug!("note received: {}, {}", note.title, note.updated_at);
 
             let mut note = db::schema::Note::from(note);
             note.id_workspace = workspace.id;
