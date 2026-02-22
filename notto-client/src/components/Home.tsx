@@ -274,8 +274,10 @@ export default function Home() {
                 className="flex-1 text-xl md:text-2xl font-bold bg-transparent text-white border-none focus:outline-none placeholder-slate-600"
                 placeholder="Note title..."
               />
+              <span className="text-xs text-slate-500 whitespace-nowrap">
+                {new Date(currentNote.updated_at).toLocaleString()}
+              </span>
             </div>
-
             {/* Note Content */}
             <div className="flex-1 p-3 md:p-4 overflow-y-auto">
               <textarea

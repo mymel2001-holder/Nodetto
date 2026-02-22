@@ -103,12 +103,14 @@ pub async fn get_note(
 
     let conn = state.database.lock().await;
 
-    let note = db::operations::get_note(
+    let mut note = db::operations::get_note(
         &conn,
         Uuid::parse_str(&id).unwrap().to_string(),
         state.workspace.clone().unwrap().master_encryption_key,
     )
     .unwrap();
+
+    note.updated_at = note.updated_at * 1000;
 
     Ok(note)
 }
