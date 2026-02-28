@@ -148,6 +148,8 @@ pub async fn send_latest_notes(
     let unsynced_notes: Vec<Note> = {
         let state = state.lock().await;
         let conn = state.database.lock().await;
+
+        //TODO: Optimise that with a database query
         Note::select_all(&conn, workspace.id.unwrap()).unwrap()
             .into_iter().filter(|n| !n.synched).collect()
     };
