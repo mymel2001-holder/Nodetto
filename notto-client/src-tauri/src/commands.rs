@@ -52,8 +52,31 @@ impl From<Note> for NoteMetadata {
         NoteMetadata {
             id: note.uuid,
             title: note.title,
-            updated_at: note.updated_at * 1000, //Convert to TS timestamps
+            updated_at: note.updated_at * 1000, // Unix seconds → ms for JS/TS
             deleted: note.deleted
+        }
+    }
+}
+
+/// Response type for get_note command.
+/// Converts updated_at from Unix seconds (DB) to milliseconds (JS/TS) at the boundary.
+#[derive(Debug, Serialize)]
+pub struct NoteResponse {
+    pub id: String,
+    pub title: String,
+    pub content: String,
+    pub updated_at: i64,
+    pub deleted: bool,
+}
+
+impl From<NoteData> for NoteResponse {
+    fn from(note: NoteData) -> Self {
+        NoteResponse {
+            id: note.id,
+            title: note.title,
+            content: note.content,
+            updated_at: note.updated_at * 1000, // Unix seconds → ms for JS/TS
+            deleted: note.deleted,
         }
     }
 }
@@ -98,21 +121,19 @@ pub async fn create_note(
 pub async fn get_note(
     state: State<'_, Mutex<AppState>>,
     id: String,
-) -> Result<NoteData, CommandError> {
+) -> Result<NoteResponse, CommandError> {
     let state = state.lock().await;
 
     let conn = state.database.lock().await;
 
-    let mut note = db::operations::get_note(
+    let note = db::operations::get_note(
         &conn,
         Uuid::parse_str(&id).unwrap().to_string(),
         state.workspace.clone().unwrap().master_encryption_key,
     )
     .unwrap();
 
-    note.updated_at = note.updated_at * 1000;
-
-    Ok(note)
+    Ok(NoteResponse::from(note))
 }
 
 #[tauri::command(rename_all = "snake_case")]
