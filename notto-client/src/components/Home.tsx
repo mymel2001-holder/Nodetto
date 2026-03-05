@@ -55,6 +55,7 @@ export default function Home() {
 
   useEffect(() => {
     get_notes_metadata();
+    get_latest_note();
   }, [workspace]);
 
   // Clear currentNote if it was removed from the notes list (e.g. deleted via modal)
@@ -79,6 +80,14 @@ export default function Home() {
       trace("getting notes metadata from: " + workspace?.id + " - " + workspace?.workspace_name)
       invoke("get_all_notes_metadata", { id_workspace: workspace?.id })
         .then((fetched) => setNotes(fetched as Note[]))
+        .catch((e) => console.error(e));
+    }
+  }
+
+  function get_latest_note() {
+    if (!currentNote) {
+      invoke("get_latest_note_id")
+        .then((id) => { if (id as string|null) get_note(id as string) })
         .catch((e) => console.error(e));
     }
   }

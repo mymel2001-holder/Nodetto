@@ -69,7 +69,8 @@ pub fn run() {
             commands::logout,
             commands::get_version,
             commands::delete_note,
-            commands::restore_note
+            commands::restore_note,
+            commands::get_latest_note_id
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

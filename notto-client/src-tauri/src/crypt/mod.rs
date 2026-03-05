@@ -13,7 +13,7 @@ use tauri_plugin_log::log::{trace, debug, info};
 
 use crate::db::schema;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NoteData {
     pub id: String,
     pub title: String,

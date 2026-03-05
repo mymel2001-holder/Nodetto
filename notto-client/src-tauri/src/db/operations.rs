@@ -124,12 +124,8 @@ fn common_insert_or_update(conn: &Connection, key: String, value: String) -> Res
 
 pub fn set_logged_workspace(conn: &Connection, workspace: Option<Workspace>) {
     match workspace {
-        Some(workspace) => {
-            common_insert_or_update(conn, "logged".to_string(), workspace.workspace_name).unwrap()
-        },
-        None => {
-            Common::delete(conn, "logged".to_string());
-        }
+        Some(workspace) => common_insert_or_update(conn, "logged".to_string(), workspace.workspace_name).unwrap(),
+        None => Common::delete(conn, "logged".to_string())
     }
 }
 
@@ -139,6 +135,22 @@ pub fn get_logged_workspace(conn: &Connection) -> Option<Workspace> {
             Some(Workspace::select(conn, lu.value).unwrap().unwrap())
         },
         None => None,
+    }
+}
+
+pub fn set_latest_note(conn: &Connection, uuid: Option<String>) {
+    match uuid {
+        Some(uuid) => common_insert_or_update(conn, "latest_note".to_string(), uuid).unwrap(),
+        None => Common::delete(conn, "latest_note".to_string())
+    }
+}
+
+pub fn get_latest_note(conn: &Connection) -> Option<String> {
+    match Common::select(conn, "latest_note".to_string()).unwrap() {
+        Some(lu) => {
+            Some(lu.value)
+        },
+        None => None
     }
 }
 

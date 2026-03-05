@@ -123,7 +123,6 @@ pub async fn get_note(
     id: String,
 ) -> Result<NoteResponse, CommandError> {
     let state = state.lock().await;
-
     let conn = state.database.lock().await;
 
     let note = db::operations::get_note(
@@ -132,6 +131,9 @@ pub async fn get_note(
         state.workspace.clone().unwrap().master_encryption_key,
     )
     .unwrap();
+
+    // Save current note uuid to db
+    db::operations::set_latest_note(&conn, Some(note.clone().id));
 
     Ok(NoteResponse::from(note))
 }
@@ -429,6 +431,9 @@ pub async fn delete_note(
     )
     .unwrap();
 
+    //Delete latest selected note from db
+    db::operations::set_latest_note(&conn, None);
+
     Ok(())
 }
 
@@ -456,4 +461,14 @@ pub async fn restore_note(
     .unwrap();
 
     Ok(())
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn get_latest_note_id(
+    state: State<'_, Mutex<AppState>>,
+) -> Result<Option<String>, CommandError> {
+    let state = state.lock().await;
+    let conn = state.database.lock().await;
+
+    Ok(db::operations::get_latest_note(&conn))
 }
