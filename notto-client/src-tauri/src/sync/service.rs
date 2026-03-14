@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
-use shared::{SelectNoteParams, SentNotes};
+use shared::{SelectNotesParams, SentNotes};
 use tokio::{sync::Mutex, time::Duration};
 
 use tauri::{AppHandle, Emitter, Manager};
@@ -96,7 +96,7 @@ pub async fn receive_latest_notes(
     last_seen: i64,
     handle: &AppHandle,
 ) -> Result<Option<i64>, Box<dyn std::error::Error>> {
-    let params = SelectNoteParams {
+    let params = SelectNotesParams {
         username: workspace.username.clone().unwrap(),
         token: workspace.token.clone().unwrap(),
         updated_at: last_seen,

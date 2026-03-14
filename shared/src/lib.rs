@@ -29,10 +29,17 @@ pub struct Note {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct SelectNoteParams {
+pub struct SelectNotesParams {
     pub username: String,
     pub token: Vec<u8>,
     pub updated_at: i64
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct SelectNoteParams {
+    pub username: String,
+    pub token: Vec<u8>,
+    pub note_id: String
 }
 
 #[derive(Deserialize, Serialize, Debug)]
