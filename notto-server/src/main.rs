@@ -76,9 +76,10 @@ async fn send_note(
             Some(selected_note) => {
                 if selected_note.updated_at > note.updated_at {
                     result.push(SentNotesResult {
-                        uuid: note.uuid,
-                        status: shared::NoteStatus::Conflict,
+                        uuid: note.uuid.clone(),
+                        status: shared::NoteStatus::Conflict(selected_note.into()),
                     });
+                    println!("user {:?} has a conflict on note {:?}", user.id, note.uuid)
                 } else {
                     note.update(&mut conn).await;
 

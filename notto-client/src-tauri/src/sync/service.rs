@@ -124,7 +124,10 @@ pub async fn receive_latest_notes(
                 if note.updated_at > sn.updated_at {
                     match sn.synched {
                         true => note.update(&conn).unwrap(),
-                        false => error!("Note {:?} is in conflict and it's not handled :(", sn.uuid) //TODO
+                        false => {
+                            info!("Note {:?} is in conflict (client side)", );
+                            handle.emit("conflict", note).unwrap();
+                        }
                     };
                 }
             },
@@ -177,8 +180,9 @@ pub async fn send_latest_notes(
                     note.synched = true;
                     note.update(&conn).unwrap();
                 },
-                shared::NoteStatus::Conflict => {
-                    error!("Note {:?} is in conflict and it's not handled :(", result.uuid) //TODO
+                shared::NoteStatus::Conflict(conflicted_note) => {
+                    info!("Note {:?} is in conflict (server side)", conflicted_note.id);
+                    handle.emit("conflict", conflicted_note).unwrap();
                 }
             }
         });

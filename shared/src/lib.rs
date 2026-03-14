@@ -1,4 +1,3 @@
-use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -43,10 +42,10 @@ pub struct SentNotes {
     pub username: String,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum NoteStatus {
     Ok,
-    Conflict,
+    Conflict(Note),
 }
 
 #[derive(Deserialize, Serialize, Debug)]
