@@ -81,10 +81,12 @@ async fn send_notes(
                     });
                     println!("user {:?} has a conflict on note {:?}", user.id, selected_note.uuid)
                 } else {
-                    selected_note.update(&mut conn).await;
+                    let mut updated_note: schema::Note = note.into();
+                    updated_note.id_user = user.id;
+                    updated_note.update(&mut conn).await;
 
                     result.push(SentNotesResult {
-                        uuid: selected_note.uuid,
+                        uuid: updated_note.uuid,
                         status: shared::NoteStatus::Ok,
                     });
                 }
