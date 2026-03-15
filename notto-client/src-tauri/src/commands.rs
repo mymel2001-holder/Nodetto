@@ -493,7 +493,14 @@ pub async fn handle_conflict(
             //Send to server with force
             let mut note = {
                 let conn = state.database.lock().await;
-                Note::select(&conn, id).unwrap().unwrap()
+                let mut note = Note::select(&conn, id).unwrap().unwrap();
+
+                // Mark synched before the HTTP request to prevent the sync loop
+                // from re-sending this note and re-triggering the conflict.
+                note.synched = true;
+                note.update(&conn).unwrap();
+
+                note
             };
 
             note.updated_at = Local::now().to_utc().timestamp();
