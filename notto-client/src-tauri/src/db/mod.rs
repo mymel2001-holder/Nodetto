@@ -1,4 +1,4 @@
-use std::{path::PathBuf};
+use std::path::PathBuf;
 
 use tokio::sync::Mutex;
 
@@ -12,9 +12,9 @@ pub fn init(db_path: PathBuf) -> Result<Mutex<Connection>, Box<dyn std::error::E
     debug!("creating/opening database at {db_path:?}");
     let conn = Connection::open(db_path).unwrap();
     trace!("db create correctly: {conn:?}");
-    
+
     conn.execute("PRAGMA foreign_keys = ON", []).unwrap();
-    
+
     // Create tables
     schema::Note::create(&conn)?;
     schema::Workspace::create(&conn)?;

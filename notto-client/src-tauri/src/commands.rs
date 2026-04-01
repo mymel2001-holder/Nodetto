@@ -46,19 +46,20 @@ pub struct NoteMetadata {
     pub id: String,
     pub title: String,
     pub updated_at: i64,
-    pub deleted: bool
+    pub deleted: bool,
 }
 
 impl NoteMetadata {
     pub fn from_note(note: Note, key: &aes_gcm::Key<aes_gcm::Aes256Gcm>) -> Self {
-        let metadata_plaintext = crypt::decrypt_data(&note.metadata, &note.metadata_nonce, key).unwrap();
+        let metadata_plaintext =
+            crypt::decrypt_data(&note.metadata, &note.metadata_nonce, key).unwrap();
         let metadata: crypt::NoteMetadata = serde_json::from_slice(&metadata_plaintext).unwrap();
 
         NoteMetadata {
             id: note.uuid,
             title: metadata.title,
             updated_at: note.updated_at * 1000,
-            deleted: note.deleted
+            deleted: note.deleted,
         }
     }
 }
@@ -175,7 +176,10 @@ pub async fn get_all_notes_metadata(
 
     let notes = db::operations::get_notes(&conn, id_workspace).unwrap();
 
-    let notes_metadata = notes.into_iter().map(|n| NoteMetadata::from_note(n, &workspace.master_encryption_key)).collect();
+    let notes_metadata = notes
+        .into_iter()
+        .map(|n| NoteMetadata::from_note(n, &workspace.master_encryption_key))
+        .collect();
 
     Ok(notes_metadata)
 }
@@ -484,9 +488,9 @@ pub async fn handle_conflict(
     state: State<'_, Mutex<AppState>>,
     handle: AppHandle,
     id: String,
-    local: bool
+    local: bool,
 ) -> Result<(), CommandError> {
-    //Handle the conflict with note. 
+    //Handle the conflict with note.
     //  Either keep the note local (local=1) or replace with the server one (local=0)
     //TODO: should this be inside `sync`?
 
@@ -512,21 +516,24 @@ pub async fn handle_conflict(
                 username: workspace.username.unwrap(),
                 notes: vec![note.into()],
                 token: workspace.token.unwrap(),
-                force: true
+                force: true,
             };
 
-            let results = sync::operations::send_notes(sent_notes, workspace.instance.unwrap()).await.unwrap();
-            results.into_iter().for_each(|result| {
-                match result.status {
-                    shared::NoteStatus::Ok => {},
-                    shared::NoteStatus::Conflict(conflicted_note) => {
-                        error!("Conflict in conflict handling, this shouldn't happen lol: {:?}", conflicted_note)
-                    }
+            let results = sync::operations::send_notes(sent_notes, workspace.instance.unwrap())
+                .await
+                .unwrap();
+            results.into_iter().for_each(|result| match result.status {
+                shared::NoteStatus::Ok => {}
+                shared::NoteStatus::Conflict(conflicted_note) => {
+                    error!(
+                        "Conflict in conflict handling, this shouldn't happen lol: {:?}",
+                        conflicted_note
+                    )
                 }
             });
-            
+
             debug!("conflicted note has been sent to server")
-        },
+        }
         false => {
             //Get server note and replace local one.
             let params = SelectNoteParams {
@@ -535,21 +542,26 @@ pub async fn handle_conflict(
                 note_id: id,
             };
 
-            let note = sync::operations::select_note(params, workspace.instance.unwrap()).await.unwrap();
+            let note = sync::operations::select_note(params, workspace.instance.unwrap())
+                .await
+                .unwrap();
 
             {
                 let conn = state.database.lock().await;
 
                 let note = db::schema::Note::from(note);
                 note.update(&conn).unwrap();
-                
+
                 let all_notes = db::operations::get_notes(&conn, workspace.id.unwrap()).unwrap();
-                let notes_metadata: Vec<NoteMetadata> = all_notes.into_iter().map(|n| NoteMetadata::from_note(n, &workspace.master_encryption_key)).collect();
-                
+                let notes_metadata: Vec<NoteMetadata> = all_notes
+                    .into_iter()
+                    .map(|n| NoteMetadata::from_note(n, &workspace.master_encryption_key))
+                    .collect();
+
                 handle.emit("new_note_metadata", &notes_metadata).unwrap();
             }
-                debug!("conflicted note has been saved locally")
-        },
+            debug!("conflicted note has been saved locally")
+        }
     }
 
     Ok(())

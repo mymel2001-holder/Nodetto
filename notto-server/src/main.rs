@@ -79,7 +79,10 @@ async fn send_notes(
                         uuid: selected_note.uuid.clone(),
                         status: shared::NoteStatus::Conflict(selected_note.clone().into()),
                     });
-                    println!("user {:?} has a conflict on note {:?}", user.id, selected_note.uuid)
+                    println!(
+                        "user {:?} has a conflict on note {:?}",
+                        user.id, selected_note.uuid
+                    )
                 } else {
                     let mut updated_note: schema::Note = note.into();
                     updated_note.id_user = user.id;
@@ -148,9 +151,10 @@ async fn select_note(
 
     let user = User::select(&mut conn, params.username).await.unwrap();
 
-    let note = schema::Note::select(&mut conn, user.id.unwrap(), params.note_id).await
+    let note = schema::Note::select(&mut conn, user.id.unwrap(), params.note_id)
+        .await
         .ok_or(StatusCode::NOT_FOUND)?;
-    
+
     Ok(Json(note.into()))
 }
 

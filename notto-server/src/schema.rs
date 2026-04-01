@@ -74,7 +74,6 @@ impl Note {
         .await
         .unwrap()
     }
-    
 
     pub async fn insert(&self, conn: &mut Conn) {
         conn.exec_drop(
@@ -114,7 +113,11 @@ impl Note {
         .unwrap();
     }
 
-    pub async fn select_all_from_user(conn: &mut Conn, id_user: u32, after_datetime: i64) -> Vec<Self> {
+    pub async fn select_all_from_user(
+        conn: &mut Conn,
+        id_user: u32,
+        after_datetime: i64,
+    ) -> Vec<Self> {
         conn.exec(
             "SELECT * FROM note WHERE id_user = :id_user AND updated_at > :updated_at",
             params!(
