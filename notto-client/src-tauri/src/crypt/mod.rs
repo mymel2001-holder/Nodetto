@@ -219,27 +219,3 @@ pub fn decrypt_data(
     let plaintext = cipher.decrypt(nonce, ciphertext).map_err(|e| e.to_string())?;
     Ok(plaintext)
 }
-
-pub fn encrypt_note(
-    content: String,
-    master_encryption_key: Key<Aes256Gcm>,
-) -> Result<(Vec<u8>, Vec<u8>), Box<dyn std::error::Error>> {
-    encrypt_data(content.as_bytes(), &master_encryption_key)
-}
-
-pub fn decrypt_note(note: schema::Note, mek: Key<Aes256Gcm>) -> Result<NoteData, Box<dyn std::error::Error>> {
-    let content_plaintext = decrypt_data(&note.content, &note.nonce, &mek)?;
-    let metadata_plaintext = decrypt_data(&note.metadata, &note.metadata_nonce, &mek)?;
-    
-    let metadata: NoteMetadata = serde_json::from_slice(&metadata_plaintext)?;
-
-    let data_unser = NoteData {
-        id: note.uuid,
-        title: metadata.title,
-        content: String::from_utf8(content_plaintext).unwrap(),
-        updated_at: note.updated_at,
-        deleted: note.deleted,
-    };
-
-    Ok(data_unser)
-}

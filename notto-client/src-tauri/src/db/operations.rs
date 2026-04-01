@@ -11,7 +11,7 @@ use crate::{crypt::{self, NoteData}, db::schema::{Common, Note, Workspace}};
 
 //TODO: refactor this, data encryption and stuff should not be inside db?
 pub fn create_note(conn: &Connection, id_workspace: u32, title: String, mek: Key<Aes256Gcm>) -> Result<String, Box<dyn std::error::Error>> {
-    let (content, nonce) = crypt::encrypt_note("".to_string(), mek).unwrap(); //Content empty because it's first note
+    let (content, nonce) = crypt::encrypt_data("".as_bytes(), &mek).unwrap(); //Content empty because it's first note
     
     let metadata_ser = serde_json::to_vec(&crypt::NoteMetadata { title }).unwrap();
     let (metadata, metadata_nonce) = crypt::encrypt_data(&metadata_ser, &mek).unwrap();
@@ -36,8 +36,18 @@ pub fn create_note(conn: &Connection, id_workspace: u32, title: String, mek: Key
 pub fn get_note(conn: &Connection, uuid: String, mek: Key<Aes256Gcm>) -> Result<NoteData, Box<dyn std::error::Error>> {
     let note = Note::select(conn, uuid).unwrap().unwrap();
 
-    //TODO: decrypt elsewhere?
-    let decrypted_note = crypt::decrypt_note(note, mek).unwrap();
+    let content_plaintext = crypt::decrypt_data(&note.content, &note.nonce, &mek)?;
+    let metadata_plaintext = crypt::decrypt_data(&note.metadata, &note.metadata_nonce, &mek)?;
+    
+    let metadata: crypt::NoteMetadata = serde_json::from_slice(&metadata_plaintext)?;
+
+    let decrypted_note = NoteData {
+        id: note.uuid,
+        title: metadata.title,
+        content: String::from_utf8(content_plaintext).unwrap(),
+        updated_at: note.updated_at,
+        deleted: note.deleted,
+    };
 
     Ok(decrypted_note)
 }
@@ -49,7 +59,7 @@ pub fn get_notes(conn: &Connection, id_workspace: u32) -> Result<Vec<Note>, Box<
 }
 
 pub fn update_note(conn: &Connection, note_data: NoteData, mek: Key<Aes256Gcm>) -> Result<(), Box<dyn std::error::Error>> {
-    let (content, nonce) = crypt::encrypt_note(note_data.content, mek).unwrap();
+    let (content, nonce) = crypt::encrypt_data(note_data.content.as_bytes(), &mek).unwrap();
 
     let metadata_ser = serde_json::to_vec(&crypt::NoteMetadata { title: note_data.title }).unwrap();
     let (metadata, metadata_nonce) = crypt::encrypt_data(&metadata_ser, &mek).unwrap();
