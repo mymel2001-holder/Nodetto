@@ -194,7 +194,7 @@ function NoteTreeItem({
         </div>
 
         {!showDeleted && (
-          <div className="flex items-center mr-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center mr-1 opacity-100 transition-opacity">
             {note.is_folder && (
               <>
                 <button
