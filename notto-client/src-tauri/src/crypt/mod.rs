@@ -35,11 +35,8 @@ pub struct NoteData {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NoteMetadata {
     pub title: String,
-    #[serde(default)]
     pub parent_id: Option<String>,
-    #[serde(default)]
     pub is_folder: bool,
-    #[serde(default)]
     pub folder_open: bool,
 }
 
