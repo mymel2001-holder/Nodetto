@@ -435,8 +435,9 @@ export default function Home() {
 
   const filteredNotes = notes.filter(
     (note) =>
+      (showDeleted ? !note.is_folder : true) &&
       note.deleted === showDeleted &&
-      (searchQuery === "" || (note.title.toLowerCase().includes(searchQuery.toLowerCase()) && !note.is_folder))
+      (searchQuery === "" || note.title.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const callbacks: TreeCallbacks = {
@@ -450,7 +451,7 @@ export default function Home() {
   };
 
   const dragActiveNote = dragActiveId ? notes.find((n) => n.id === dragActiveId) ?? null : null;
-  const deletedCount = notes.filter((n) => n.deleted).length;
+  const deletedCount = notes.filter((n) => n.deleted && !n.is_folder).length;
 
   return (
     <div className="flex h-screen pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] bg-slate-900 overflow-hidden overscroll-none">
