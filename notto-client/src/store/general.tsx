@@ -12,6 +12,9 @@ export enum syncStatusEnum {
 export type Note = {
   id: string;
   title: string;
+  parent_id: string | null;
+  is_folder: boolean;
+  folder_open: boolean;
   updated_at: Date;
   deleted: boolean;
 };

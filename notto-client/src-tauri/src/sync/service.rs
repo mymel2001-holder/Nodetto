@@ -134,6 +134,9 @@ pub async fn receive_latest_notes(
                             let note_data = NoteData {
                                 id: note.uuid.clone(),
                                 title: metadata.title,
+                                parent_id: metadata.parent_id,
+                                is_folder: metadata.is_folder,
+                                folder_open: metadata.folder_open,
                                 content: String::from_utf8(content_plaintext).unwrap(),
                                 updated_at: note.updated_at,
                                 deleted: note.deleted,
@@ -209,6 +212,9 @@ pub async fn send_latest_notes(
                     let note_data = NoteData {
                         id: note.uuid,
                         title: metadata.title,
+                        parent_id: metadata.parent_id,
+                        is_folder: metadata.is_folder,
+                        folder_open: metadata.folder_open,
                         content: String::from_utf8(content_plaintext).unwrap(),
                         updated_at: note.updated_at,
                         deleted: note.deleted,

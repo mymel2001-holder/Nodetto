@@ -20,52 +20,71 @@ export default function DeleteNoteConfirmModal() {
   async function handleDelete() {
     if (!noteIdToDelete) return;
 
-    trace("deleting note: " + noteIdToDelete);
+    const noteToDelete = notes.find(n => n.id === noteIdToDelete);
+    if (!noteToDelete) return;
+
+    trace("deleting: " + noteIdToDelete + " is_folder: " + noteToDelete.is_folder);
+
+    if (noteToDelete.is_folder) {
+      // Move children to parent
+      const children = notes.filter(n => n.parent_id === noteIdToDelete);
+      for (const child of children) {
+        // We need to get full note to update it
+        const fullNote: any = await invoke("get_note", { id: child.id });
+        const updatedNote = {
+          ...fullNote,
+          parent_id: noteToDelete.parent_id
+        };
+        await invoke("edit_note", { note: updatedNote });
+      }
+    }
+
     await invoke("delete_note", { id: noteIdToDelete }).catch((e) => console.error(e));
 
-    setNotes(notes.filter((n) => n.id !== noteIdToDelete));
     setShowDeleteNoteConfirm(false);
-    
     get_notes_metadata();
   }
 
   return (
     <>
       {showDeleteNoteConfirm &&
-
-        <div className="min-h-screen min-w-screen pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] flex items-center justify-center p-4 fixed z-50">
-          <div className="fixed inset-0 backdrop-blur-sm"
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             onClick={() => setShowDeleteNoteConfirm(false)}
           />
 
-          <div className="relative bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-8">
+          <div className="relative bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-8 border border-slate-700">
             <div className="text-center mb-6">
-              <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="mx-auto w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </div>
               <h2 className="text-2xl font-bold text-white mb-2">
-                Delete Note
+                Delete {notes.find(n => n.id === noteIdToDelete)?.is_folder ? "Folder" : "Note"}
               </h2>
-              <p className="text-white">
-                This note will be deleted.
+              <p className="text-slate-300">
+                {notes.find(n => n.id === noteIdToDelete)?.is_folder 
+                  ? "This folder will be deleted. All its contents will be moved to the parent folder."
+                  : "This note will be moved to the trash."}
               </p>
             </div>
 
-            <button
-              onClick={handleDelete}
-              className="w-full px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors mb-3"
-            >
-              Delete
-            </button>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleDelete}
+                className="w-full px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-all shadow-lg shadow-red-600/20"
+              >
+                Delete
+              </button>
 
-            <button
-              onClick={() => setShowDeleteNoteConfirm(false)}
-              className="w-full px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors"
-            >
-              Cancel
-            </button>
+              <button
+                onClick={() => setShowDeleteNoteConfirm(false)}
+                className="w-full px-6 py-3 bg-slate-700 text-slate-200 font-semibold rounded-lg hover:bg-slate-600 transition-all"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       }

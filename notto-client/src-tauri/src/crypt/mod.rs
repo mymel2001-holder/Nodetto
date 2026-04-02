@@ -24,6 +24,9 @@ use crate::db::schema;
 pub struct NoteData {
     pub id: String,
     pub title: String,
+    pub parent_id: Option<String>,
+    pub is_folder: bool,
+    pub folder_open: bool,
     pub content: String,
     pub updated_at: i64,
     pub deleted: bool,
@@ -32,6 +35,9 @@ pub struct NoteData {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NoteMetadata {
     pub title: String,
+    pub parent_id: Option<String>,
+    pub is_folder: bool,
+    pub folder_open: bool,
 }
 
 #[derive(Debug)]

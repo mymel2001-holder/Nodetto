@@ -45,6 +45,9 @@ impl From<Workspace> for FilteredWorkspace {
 pub struct NoteMetadata {
     pub id: String,
     pub title: String,
+    pub parent_id: Option<String>,
+    pub is_folder: bool,
+    pub folder_open: bool,
     pub updated_at: i64,
     pub deleted: bool,
 }
@@ -58,6 +61,9 @@ impl NoteMetadata {
         NoteMetadata {
             id: note.uuid,
             title: metadata.title,
+            parent_id: metadata.parent_id,
+            is_folder: metadata.is_folder,
+            folder_open: metadata.folder_open,
             updated_at: note.updated_at * 1000,
             deleted: note.deleted,
         }
@@ -70,6 +76,9 @@ impl NoteMetadata {
 pub struct NoteResponse {
     pub id: String,
     pub title: String,
+    pub parent_id: Option<String>,
+    pub is_folder: bool,
+    pub folder_open: bool,
     pub content: String,
     pub updated_at: i64,
     pub deleted: bool,
@@ -80,6 +89,9 @@ impl From<NoteData> for NoteResponse {
         NoteResponse {
             id: note.id,
             title: note.title,
+            parent_id: note.parent_id,
+            is_folder: note.is_folder,
+            folder_open: note.folder_open,
             content: note.content,
             updated_at: note.updated_at * 1000, // Unix seconds → ms for JS/TS
             deleted: note.deleted,
@@ -105,6 +117,7 @@ pub async fn init(state: State<'_, Mutex<AppState>>) -> Result<(), CommandError>
 pub async fn create_note(
     state: State<'_, Mutex<AppState>>,
     title: String,
+    parent_id: Option<String>,
 ) -> Result<String, CommandError> {
     let state = state.lock().await;
 
@@ -116,11 +129,38 @@ pub async fn create_note(
         &conn,
         workspace.id.unwrap(),
         title,
+        parent_id,
+        false, // is_folder
         workspace.master_encryption_key,
     )
     .unwrap();
 
     Ok(note_uuid)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn create_folder(
+    state: State<'_, Mutex<AppState>>,
+    title: String,
+    parent_id: Option<String>,
+) -> Result<String, CommandError> {
+    let state = state.lock().await;
+
+    let conn = state.database.lock().await;
+
+    let workspace = state.workspace.clone().unwrap();
+
+    let folder_uuid = db::operations::create_note(
+        &conn,
+        workspace.id.unwrap(),
+        title,
+        parent_id,
+        true, // is_folder
+        workspace.master_encryption_key,
+    )
+    .unwrap();
+
+    Ok(folder_uuid)
 }
 
 #[tauri::command(rename_all = "snake_case")]

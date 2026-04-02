@@ -17,11 +17,18 @@ pub fn create_note(
     conn: &Connection,
     id_workspace: u32,
     title: String,
+    parent_id: Option<String>,
+    is_folder: bool,
     mek: Key<Aes256Gcm>,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let (content, nonce) = crypt::encrypt_data("".as_bytes(), &mek).unwrap(); //Content empty because it's first note
     
-    let metadata_ser = serde_json::to_vec(&crypt::NoteMetadata { title }).unwrap();
+    let metadata_ser = serde_json::to_vec(&crypt::NoteMetadata { 
+        title, 
+        parent_id, 
+        is_folder, 
+        folder_open: true 
+    }).unwrap();
     let (metadata, metadata_nonce) = crypt::encrypt_data(&metadata_ser, &mek).unwrap();
 
     let note = Note {
@@ -56,6 +63,9 @@ pub fn get_note(
     let decrypted_note = NoteData {
         id: note.uuid,
         title: metadata.title,
+        parent_id: metadata.parent_id,
+        is_folder: metadata.is_folder,
+        folder_open: metadata.folder_open,
         content: String::from_utf8(content_plaintext).unwrap(),
         updated_at: note.updated_at,
         deleted: note.deleted,
@@ -80,7 +90,12 @@ pub fn update_note(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let (content, nonce) = crypt::encrypt_data(note_data.content.as_bytes(), &mek).unwrap();
 
-    let metadata_ser = serde_json::to_vec(&crypt::NoteMetadata { title: note_data.title }).unwrap();
+    let metadata_ser = serde_json::to_vec(&crypt::NoteMetadata { 
+        title: note_data.title,
+        parent_id: note_data.parent_id,
+        is_folder: note_data.is_folder,
+        folder_open: note_data.folder_open,
+    }).unwrap();
     let (metadata, metadata_nonce) =
         crypt::encrypt_data(&metadata_ser, &mek).unwrap();
 

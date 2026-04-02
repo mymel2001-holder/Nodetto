@@ -70,6 +70,7 @@ pub fn run() {
             commands::get_version,
             commands::delete_note,
             commands::restore_note,
+            commands::create_folder,
             commands::get_latest_note_id,
             commands::handle_conflict
         ])
