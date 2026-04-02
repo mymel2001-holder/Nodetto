@@ -122,7 +122,7 @@ function NoteTreeItem({
 
   function handleMainClick() {
     if (note.is_folder) {
-      callbacks.onToggleFolder(note);
+      callbacks.onSelectNote(note.id);
     } else {
       callbacks.onSelectNote(note.id);
       callbacks.onCloseSidebar();
@@ -671,24 +671,49 @@ export default function Home() {
                   placeholder="Start writing..."
                 />
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-slate-500 opacity-40 select-none">
-                  <div className="p-8 bg-slate-800/50 rounded-full mb-6">
-                    <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-400 mb-2">Empty Folder</h3>
-                  <p className="text-sm text-center max-w-xs">
-                    This folder has no notes yet. Use the{" "}
-                    <span className="text-blue-500 inline-flex items-center">
-                      +{" "}
-                      <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </span>{" "}
-                    icons in the sidebar to add something here.
-                  </p>
-                </div>
+                (() => {
+                  const children = notes.filter(
+                    (n) => n.parent_id === currentNote.id && !n.deleted
+                  ).sort((a, b) => {
+                    if (a.is_folder && !b.is_folder) return -1;
+                    if (!a.is_folder && b.is_folder) return 1;
+                    return a.title.localeCompare(b.title);
+                  });
+
+                  return children.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-slate-500 opacity-40 select-none">
+                      <div className="p-8 bg-slate-800/50 rounded-full mb-6">
+                        <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                      </div>
+                      <p className="text-sm text-center max-w-xs">This folder is empty.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 content-start">
+                      {children.map((child) => (
+                        <button
+                          key={child.id}
+                          onClick={() => get_note(child.id)}
+                          className="flex flex-col items-start gap-2 p-3 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 hover:border-slate-600 transition-all text-left group"
+                        >
+                          {child.is_folder ? (
+                            <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          )}
+                          <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors truncate w-full">
+                            {child.title}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()
               )}
             </div>
           </>
