@@ -75,13 +75,17 @@ function DragGhostItem({ note }: { note: Note }) {
   );
 }
 
-function RootDropZone() {
+function RootDropZone({ isDragging }: { isDragging: boolean }) {
   const { isOver, setNodeRef } = useDroppable({ id: "__root__" });
   return (
     <div
       ref={setNodeRef}
-      className={`mx-1 rounded-md transition-all duration-150 ${
-        isOver ? "h-8 bg-blue-400/20 border border-dashed border-blue-400/50 mb-1" : "h-1"
+      className={`mx-1 rounded-md border border-dashed transition-all duration-150 ${
+        isOver
+          ? "h-8 bg-blue-400/20 border-blue-400/50 mb-1"
+          : isDragging
+          ? "h-6 border-slate-600 mb-1"
+          : "h-0 border-transparent"
       }`}
     />
   );
@@ -126,18 +130,7 @@ function NoteTreeItem({
   }
 
   return (
-    <div
-      className="flex flex-col"
-      style={{
-        marginLeft: !isSearchResult && level > 0 ? `${level * 12}px` : undefined,
-        opacity: draggable.isDragging ? 0.4 : 1,
-      }}
-    >
-      {/* Vertical connector line for nested items */}
-      {!isSearchResult && level > 0 && (
-        <div className="absolute left-0 top-0 bottom-0 w-px bg-slate-700 -ml-3 pointer-events-none" />
-      )}
-
+    <div className="flex flex-col" style={{ opacity: draggable.isDragging ? 0.4 : 1 }}>
       <div
         ref={setRef}
         className={`group relative min-h-10 w-full rounded-lg text-left transition-all duration-150 flex items-center ${
@@ -254,7 +247,7 @@ function NoteTreeItem({
       </div>
 
       {!isSearchResult && note.is_folder && note.folder_open && hasChildren && (
-        <div className="flex flex-col border-l border-slate-700 mt-1">
+        <div className="flex flex-col pl-3 border-l border-slate-700 mt-1 ml-3">
           {children.map((child) => (
             <NoteTreeItem
               key={child.id}
@@ -568,7 +561,7 @@ export default function Home() {
             onDragEnd={handleDragEnd}
           >
             <div className="px-2 py-2 space-y-0.5">
-              {!showDeleted && searchQuery === "" && <RootDropZone />}
+              {!showDeleted && searchQuery === "" && <RootDropZone isDragging={dragActiveId !== null} />}
 
               {showDeleted || searchQuery !== "" ? (
                 filteredNotes.map((note) => (
