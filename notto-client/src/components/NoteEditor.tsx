@@ -45,6 +45,7 @@ function Divider() {
 
 export default function NoteEditor({ noteId, content, onChange, disabled }: Props) {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSwitchingRef = useRef(false);
 
   const editor = useEditor({
     extensions: [StarterKit, Markdown],
@@ -52,6 +53,7 @@ export default function NoteEditor({ noteId, content, onChange, disabled }: Prop
     contentType: "markdown",
     editable: !disabled,
     onUpdate: ({ editor }) => {
+      if (isSwitchingRef.current) return;
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         onChange(editor.getMarkdown());
@@ -62,7 +64,10 @@ export default function NoteEditor({ noteId, content, onChange, disabled }: Prop
   // Reset content when switching to a different note
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
+    isSwitchingRef.current = true;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     editor.commands.setContent(content, { emitUpdate: false, contentType: "markdown" });
+    isSwitchingRef.current = false;
   }, [noteId]);
 
   // Sync disabled state
