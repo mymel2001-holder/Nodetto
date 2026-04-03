@@ -2,7 +2,6 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "@tiptap/markdown";
 import { useEffect, useRef } from "react";
-import "./NoteEditor.css";
 
 type Props = {
   noteId: string;
@@ -213,7 +212,26 @@ export default function NoteEditor({ noteId, content, onChange, disabled }: Prop
       {/* Editor content */}
       <EditorContent
         editor={editor}
-        className="note-editor flex-1 overflow-y-auto px-6 py-5"
+        className="flex-1 overflow-y-auto px-6 py-5
+          [&_.ProseMirror]:outline-none [&_.ProseMirror]:h-full [&_.ProseMirror]:text-slate-300 [&_.ProseMirror]:text-[0.9375rem] [&_.ProseMirror]:leading-relaxed
+          [&_.ProseMirror_p]:mb-2.5
+          [&_.ProseMirror_h1]:text-[1.75rem] [&_.ProseMirror_h1]:font-bold [&_.ProseMirror_h1]:text-slate-100 [&_.ProseMirror_h1]:mb-3 [&_.ProseMirror_h1]:mt-5
+          [&_.ProseMirror_h2]:text-[1.375rem] [&_.ProseMirror_h2]:font-bold [&_.ProseMirror_h2]:text-slate-100 [&_.ProseMirror_h2]:mb-2.5 [&_.ProseMirror_h2]:mt-4
+          [&_.ProseMirror_h3]:text-[1.125rem] [&_.ProseMirror_h3]:font-semibold [&_.ProseMirror_h3]:text-slate-100 [&_.ProseMirror_h3]:mb-2 [&_.ProseMirror_h3]:mt-3.5
+          [&_.ProseMirror_h1:first-child]:mt-0 [&_.ProseMirror_h2:first-child]:mt-0 [&_.ProseMirror_h3:first-child]:mt-0
+          [&_.ProseMirror_strong]:font-semibold [&_.ProseMirror_strong]:text-slate-200
+          [&_.ProseMirror_em]:italic [&_.ProseMirror_em]:text-slate-400
+          [&_.ProseMirror_s]:line-through [&_.ProseMirror_s]:text-slate-500
+          [&_.ProseMirror_code]:font-mono [&_.ProseMirror_code]:text-[0.85em] [&_.ProseMirror_code]:bg-slate-800 [&_.ProseMirror_code]:text-blue-300 [&_.ProseMirror_code]:rounded [&_.ProseMirror_code]:px-1.5 [&_.ProseMirror_code]:py-0.5
+          [&_.ProseMirror_pre]:bg-slate-800 [&_.ProseMirror_pre]:border [&_.ProseMirror_pre]:border-slate-700 [&_.ProseMirror_pre]:rounded-lg [&_.ProseMirror_pre]:p-4 [&_.ProseMirror_pre]:mb-3 [&_.ProseMirror_pre]:overflow-x-auto
+          [&_.ProseMirror_pre_code]:bg-transparent [&_.ProseMirror_pre_code]:text-slate-200 [&_.ProseMirror_pre_code]:p-0 [&_.ProseMirror_pre_code]:text-sm
+          [&_.ProseMirror_blockquote]:border-l-[3px] [&_.ProseMirror_blockquote]:border-slate-600 [&_.ProseMirror_blockquote]:pl-4 [&_.ProseMirror_blockquote]:text-slate-500 [&_.ProseMirror_blockquote]:italic [&_.ProseMirror_blockquote]:mb-3
+          [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-6 [&_.ProseMirror_ul]:mb-3
+          [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-6 [&_.ProseMirror_ol]:mb-3
+          [&_.ProseMirror_li]:mb-1
+          [&_.ProseMirror_li_p]:mb-0
+          [&_.ProseMirror_hr]:border-none [&_.ProseMirror_hr]:border-t [&_.ProseMirror_hr]:border-slate-700 [&_.ProseMirror_hr]:my-5
+          [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-slate-600 [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0"
       />
     </div>
   );
