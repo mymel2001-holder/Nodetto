@@ -1,0 +1,123 @@
+.note-editor .ProseMirror {
+  height: 100%;
+  outline: none;
+  color: #cbd5e1;
+  font-size: 0.9375rem;
+  line-height: 1.75;
+}
+
+.note-editor .ProseMirror p {
+  margin-bottom: 0.625rem;
+}
+
+.note-editor .ProseMirror h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-bottom: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.note-editor .ProseMirror h2 {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-bottom: 0.625rem;
+  margin-top: 1rem;
+}
+
+.note-editor .ProseMirror h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin-bottom: 0.5rem;
+  margin-top: 0.875rem;
+}
+
+.note-editor .ProseMirror h1:first-child,
+.note-editor .ProseMirror h2:first-child,
+.note-editor .ProseMirror h3:first-child {
+  margin-top: 0;
+}
+
+.note-editor .ProseMirror strong {
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.note-editor .ProseMirror em {
+  font-style: italic;
+  color: #94a3b8;
+}
+
+.note-editor .ProseMirror s {
+  text-decoration: line-through;
+  color: #64748b;
+}
+
+.note-editor .ProseMirror code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.85em;
+  background: #1e293b;
+  color: #93c5fd;
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+
+.note-editor .ProseMirror pre {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  overflow-x: auto;
+}
+
+.note-editor .ProseMirror pre code {
+  background: none;
+  color: #e2e8f0;
+  padding: 0;
+  font-size: 0.875rem;
+}
+
+.note-editor .ProseMirror blockquote {
+  border-left: 3px solid #475569;
+  padding-left: 1rem;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+  font-style: italic;
+}
+
+.note-editor .ProseMirror ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.note-editor .ProseMirror ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.note-editor .ProseMirror li {
+  margin-bottom: 0.2rem;
+}
+
+.note-editor .ProseMirror li p {
+  margin-bottom: 0;
+}
+
+.note-editor .ProseMirror hr {
+  border: none;
+  border-top: 1px solid #334155;
+  margin: 1.25rem 0;
+}
+
+.note-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #475569;
+  pointer-events: none;
+  height: 0;
+}
