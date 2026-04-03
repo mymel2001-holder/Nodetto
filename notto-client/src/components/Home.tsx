@@ -378,6 +378,7 @@ export default function Home() {
   }
 
   async function edit_note(content: string) {
+    if (currentNote && currentNote.content === content) return;
     const note: NoteContent = { ...currentNote!, content };
     setCurrentNote(note);
     invoke("edit_note", { note }).catch((e) => console.error(e));

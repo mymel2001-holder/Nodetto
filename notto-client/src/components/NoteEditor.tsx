@@ -47,6 +47,7 @@ export default function NoteEditor({ noteId, content, onChange, disabled }: Prop
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSwitchingRef = useRef(false);
   const isMountedRef = useRef(false);
+  const lastContentRef = useRef(content);
 
   const editor = useEditor({
     extensions: [StarterKit, Markdown],
@@ -55,9 +56,13 @@ export default function NoteEditor({ noteId, content, onChange, disabled }: Prop
     editable: !disabled,
     onUpdate: ({ editor }) => {
       if (isSwitchingRef.current) return;
+      const markdown = editor.getMarkdown();
+      if (markdown === lastContentRef.current) return;
+
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
-        onChange(editor.getMarkdown());
+        lastContentRef.current = markdown;
+        onChange(markdown);
       }, 400);
     },
   });
@@ -70,6 +75,7 @@ export default function NoteEditor({ noteId, content, onChange, disabled }: Prop
     }
     if (!editor || editor.isDestroyed) return;
     isSwitchingRef.current = true;
+    lastContentRef.current = content;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     editor.commands.setContent(content, { emitUpdate: false, contentType: "markdown" });
     // onUpdate fires asynchronously, reset the flag after the current microtask queue
