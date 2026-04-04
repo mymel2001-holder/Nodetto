@@ -3,6 +3,7 @@ import { useGeneral, Note } from "../store/general";
 import { useModals } from "../store/modals";
 import { invoke } from "@tauri-apps/api/core";
 import AccountMenu from "./AccountMenu";
+import NoteEditor from "./NoteEditor";
 import { trace } from "@tauri-apps/plugin-log";
 import { listen } from "@tauri-apps/api/event";
 import {
@@ -308,9 +309,11 @@ export default function Home() {
     get_latest_note();
   }, [workspace]);
 
-  // Clear currentNote if it was removed from the notes list (e.g. deleted via modal)
+  // Clear currentNote if it was removed or its deleted status no longer matches the current tab
   useEffect(() => {
-    if (currentNote && !notes.find((n) => n.id === currentNote.id)) {
+    if (!currentNote) return;
+    const noteInList = notes.find((n) => n.id === currentNote.id);
+    if (!noteInList || noteInList.deleted !== showDeleted) {
       setCurrentNote(null);
     }
   }, [notes]);
@@ -375,6 +378,7 @@ export default function Home() {
   }
 
   async function edit_note(content: string) {
+    if (currentNote && currentNote.content === content) return;
     const note: NoteContent = { ...currentNote!, content };
     setCurrentNote(note);
     invoke("edit_note", { note }).catch((e) => console.error(e));
@@ -658,14 +662,14 @@ export default function Home() {
             </div>
 
             {/* Note Content */}
-            <div className="flex-1 p-3 md:px-6 md:py-6 overflow-y-auto overflow-x-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden">
               {!currentNote.is_folder ? (
-                <textarea
-                  onChange={(e) => edit_note(e.target.value)}
-                  value={currentNote.content}
+                <NoteEditor
+                  key={currentNote.id}
+                  noteId={currentNote.id}
+                  content={currentNote.content}
+                  onChange={edit_note}
                   disabled={currentNote.deleted}
-                  className="w-full h-full bg-transparent text-white resize-none border-none focus:outline-none placeholder-slate-600 text-sm md:text-base leading-relaxed disabled:opacity-60 disabled:cursor-not-allowed selection:bg-blue-500/30"
-                  placeholder="Start writing..."
                 />
               ) : (
                 (() => {
@@ -678,7 +682,7 @@ export default function Home() {
                   });
 
                   return children.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-slate-500 opacity-40 select-none">
+                    <div className="flex flex-col items-center justify-center h-full text-slate-500 opacity-40 select-none p-6">
                       <div className="p-8 bg-slate-800/50 rounded-full mb-6">
                         <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
@@ -687,7 +691,7 @@ export default function Home() {
                       <p className="text-sm text-center max-w-xs">This folder is empty.</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 content-start">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 content-start p-3 md:p-6 overflow-y-auto">
                       {children.map((child) => (
                         <button
                           key={child.id}
