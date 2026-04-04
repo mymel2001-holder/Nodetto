@@ -82,6 +82,17 @@ export default function NoteEditor({ noteId, content, onChange, disabled }: Prop
     Promise.resolve().then(() => { isSwitchingRef.current = false; });
   }, [noteId]);
 
+  // Apply content update from server (e.g. live sync from another device)
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    if (content === lastContentRef.current) return;
+    isSwitchingRef.current = true;
+    lastContentRef.current = content;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    editor.commands.setContent(content, { emitUpdate: false, contentType: "markdown" });
+    Promise.resolve().then(() => { isSwitchingRef.current = false; });
+  }, [content]);
+
   // Sync disabled state
   useEffect(() => {
     if (!editor) return;
