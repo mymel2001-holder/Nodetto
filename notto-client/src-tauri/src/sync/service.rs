@@ -33,7 +33,7 @@ pub async fn run(handle: AppHandle) {
             };
 
             if let Some(workspace) = workspace {
-                if workspace.id.is_some() && workspace.token.is_some() && workspace.instance.is_some() {
+                if workspace.token.is_some() && workspace.instance.is_some() {
                     let current_last_seen = workspace.last_sync_at;
 
                     match receive_latest_notes(&state, workspace.clone(), current_last_seen, &handle).await {
@@ -125,7 +125,7 @@ pub async fn receive_latest_notes(
         debug!("note received: {}, {}", note.uuid, note.updated_at);
 
         let mut note = db::schema::Note::from(note);
-        note.id_workspace = workspace.id;
+        note.id_workspace = Some(workspace.id);
 
         match Note::select(&conn, note.uuid.clone()).context("Failed to look up note in database")? {
             Some(sn) => {
@@ -146,8 +146,7 @@ pub async fn receive_latest_notes(
         }
     }
 
-    let workspace_id = workspace.id.context("Workspace has no ID")?;
-    let all_notes = db::operations::get_notes(&conn, workspace_id)
+    let all_notes = db::operations::get_notes(&conn, workspace.id)
         .context("Failed to read notes after sync")?;
 
     let notes_metadata = all_notes
@@ -166,14 +165,12 @@ pub async fn send_latest_notes(
     workspace: Workspace,
     handle: &AppHandle,
 ) -> Result<Option<i64>> {
-    let workspace_id = workspace.id.context("Workspace has no ID")?;
-
     let unsynced_notes: Vec<Note> = {
         let state = state.lock().await;
         let conn = state.database.lock().await;
 
         //TODO: Optimise that with a database query
-        Note::select_all(&conn, workspace_id)
+        Note::select_all(&conn, workspace.id)
             .context("Failed to read notes from database")?
             .into_iter()
             .filter(|n| !n.synched)

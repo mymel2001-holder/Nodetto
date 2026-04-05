@@ -118,8 +118,8 @@ pub fn create_workspace(conn: &Connection, workspace_name: String) -> Result<Wor
     let workspace_encryption_data =
         crypt::create_workspace().context("Failed to generate workspace encryption data")?;
 
-    let mut workspace = Workspace {
-        id: None,
+    let workspace = Workspace {
+        id: 0, // placeholder, overwritten after insert
         workspace_name,
         username: None,
         master_encryption_key: workspace_encryption_data.master_encryption_key,
@@ -133,7 +133,10 @@ pub fn create_workspace(conn: &Connection, workspace_name: String) -> Result<Wor
 
     workspace.insert(conn).context("Failed to save new workspace")?;
 
-    workspace.id = Some(conn.last_insert_rowid() as u32);
+    let workspace = Workspace {
+        id: conn.last_insert_rowid() as u32,
+        ..workspace
+    };
 
     //TODO: send recovery keys to frontend
 
@@ -207,12 +210,8 @@ pub fn logout_workspace(conn: &Connection, workspace_name: String) -> Result<()>
         .context("Failed to read workspace")?
         .ok_or_else(|| anyhow::anyhow!("Workspace not found"))?;
 
-    let id = workspace
-        .id
-        .ok_or_else(|| anyhow::anyhow!("Workspace has no ID"))?;
-
     //TODO: This doesn't feel right without stopping sync
-    Note::delete_all_from_workspace(conn, id).context("Failed to delete notes from workspace")?;
+    Note::delete_all_from_workspace(conn, workspace.id).context("Failed to delete notes from workspace")?;
     workspace.delete(conn).context("Failed to delete workspace")?;
     Common::delete(conn, "logged".to_string()).context("Failed to clear logged workspace")?;
 

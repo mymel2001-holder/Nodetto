@@ -68,14 +68,12 @@ pub struct FilteredWorkspace {
     pub workspace_name: String,
 }
 
-impl TryFrom<Workspace> for FilteredWorkspace {
-    type Error = anyhow::Error;
-
-    fn try_from(workspace: Workspace) -> Result<Self, Self::Error> {
-        Ok(FilteredWorkspace {
-            id: workspace.id.context("Workspace has no ID")?,
+impl From<Workspace> for FilteredWorkspace {
+    fn from(workspace: Workspace) -> Self {
+        FilteredWorkspace {
+            id: workspace.id,
             workspace_name: workspace.workspace_name,
-        })
+        }
     }
 }
 
@@ -166,13 +164,9 @@ pub async fn create_note(
         .clone()
         .ok_or_else(|| CommandError::unauthorized("No workspace is loaded"))?;
 
-    let workspace_id = workspace
-        .id
-        .ok_or_else(|| anyhow::anyhow!("Workspace has no ID"))?;
-
     let note_uuid = db::operations::create_note(
         &conn,
-        workspace_id,
+        workspace.id,
         title,
         parent_id,
         false, // is_folder
@@ -197,13 +191,9 @@ pub async fn create_folder(
         .clone()
         .ok_or_else(|| CommandError::unauthorized("No workspace is loaded"))?;
 
-    let workspace_id = workspace
-        .id
-        .ok_or_else(|| anyhow::anyhow!("Workspace has no ID"))?;
-
     let folder_uuid = db::operations::create_note(
         &conn,
-        workspace_id,
+        workspace.id,
         title,
         parent_id,
         true, // is_folder
@@ -311,11 +301,7 @@ pub async fn get_workspaces(
 
     let workspaces = db::operations::get_workspaces(&conn).context("Failed to load workspaces")?;
 
-    let filtered = workspaces
-        .into_iter()
-        .map(FilteredWorkspace::try_from)
-        .collect::<anyhow::Result<Vec<_>>>()
-        .context("Failed to process workspaces")?;
+    let filtered = workspaces.into_iter().map(FilteredWorkspace::from).collect();
 
     Ok(filtered)
 }
@@ -347,11 +333,8 @@ pub async fn set_logged_workspace(
         .context("Failed to save logged workspace")?;
 
     let workspace = workspace.ok_or_else(|| CommandError::not_found("Workspace not found"))?;
-    let id = workspace
-        .id
-        .ok_or_else(|| anyhow::anyhow!("Workspace has no ID"))?;
 
-    Ok(FilteredWorkspace { id, workspace_name: workspace.workspace_name })
+    Ok(FilteredWorkspace::from(workspace))
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -361,10 +344,7 @@ pub async fn get_logged_workspace(
     let state = state.lock().await;
 
     match &state.workspace {
-        Some(w) => {
-            let id = w.id.ok_or_else(|| anyhow::anyhow!("Workspace has no ID"))?;
-            Ok(Some(FilteredWorkspace { id, workspace_name: w.workspace_name.clone() }))
-        }
+        Some(w) => Ok(Some(FilteredWorkspace { id: w.id, workspace_name: w.workspace_name.clone() })),
         None => Ok(None),
     }
 }
@@ -437,13 +417,9 @@ pub async fn sync_login(
 
     trace!("mek decrypted");
 
-    let workspace_id = workspace
-        .id
-        .ok_or_else(|| anyhow::anyhow!("Workspace has no ID"))?;
-
     let notes: Vec<NoteData> = {
         let conn = state.database.lock().await;
-        let notes: Vec<Note> = db::operations::get_notes(&conn, workspace_id)
+        let notes: Vec<Note> = db::operations::get_notes(&conn, workspace.id)
             .context("Failed to read existing notes")?;
 
         notes
@@ -678,9 +654,6 @@ pub async fn handle_conflict(
                 .instance
                 .clone()
                 .ok_or_else(|| anyhow::anyhow!("Workspace has no instance"))?;
-            let workspace_id = workspace
-                .id
-                .ok_or_else(|| anyhow::anyhow!("Workspace has no ID"))?;
 
             let params = SelectNoteParams {
                 username,
@@ -698,7 +671,7 @@ pub async fn handle_conflict(
                 let note = db::schema::Note::from(note);
                 note.update(&conn).context("Failed to save server note locally")?;
 
-                let all_notes = db::operations::get_notes(&conn, workspace_id)
+                let all_notes = db::operations::get_notes(&conn, workspace.id)
                     .context("Failed to reload notes")?;
 
                 let notes_metadata = all_notes

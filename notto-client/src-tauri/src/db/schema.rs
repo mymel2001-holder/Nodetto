@@ -152,7 +152,7 @@ impl Note {
 
 #[derive(Debug, Clone)]
 pub struct Workspace {
-    pub id: Option<u32>,
+    pub id: u32,
     pub workspace_name: String,
     pub username: Option<String>,
 
@@ -191,8 +191,8 @@ impl Workspace {
 
     pub fn insert(&self, conn: &Connection) -> Result<()> {
         conn.execute(
-            "INSERT INTO workspace (id, workspace_name, username, master_encryption_key, salt_recovery_data, mek_recovery_nonce, encrypted_mek_recovery, token, instance, last_sync_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-            (&self.id, &self.workspace_name, &self.username, &self.master_encryption_key.to_vec(), &self.salt_recovery_data, &self.mek_recovery_nonce, &self.encrypted_mek_recovery, &self.token, &self.instance, &self.last_sync_at),
+            "INSERT INTO workspace (workspace_name, username, master_encryption_key, salt_recovery_data, mek_recovery_nonce, encrypted_mek_recovery, token, instance, last_sync_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            (&self.workspace_name, &self.username, &self.master_encryption_key.to_vec(), &self.salt_recovery_data, &self.mek_recovery_nonce, &self.encrypted_mek_recovery, &self.token, &self.instance, &self.last_sync_at),
         )
         .context("Failed to insert workspace")?;
 
