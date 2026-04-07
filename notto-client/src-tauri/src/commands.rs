@@ -373,8 +373,7 @@ pub async fn sync_create_account(
     trace!("create account: start creating");
 
     sync::create_account(workspace, username, account, instance)
-        .await
-        .context("Failed to create account")?;
+        .await?;
 
     debug!("account has been created");
 
@@ -402,8 +401,7 @@ pub async fn sync_login(
     let instance = instance.unwrap_or_else(|| "http://localhost:3000".to_string()); //TODO
 
     let login_data = sync::login(username.clone(), password.clone(), instance.clone())
-        .await
-        .context("Login failed")?;
+        .await?;
 
     debug!("account has been logged in");
 

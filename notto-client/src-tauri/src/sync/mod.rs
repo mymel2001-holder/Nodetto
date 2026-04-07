@@ -60,5 +60,4 @@ pub async fn login(username: String, password: String, instance: String) -> Resu
 
     operations::login(login_params, instance)
         .await
-        .context("Login failed")
 }
