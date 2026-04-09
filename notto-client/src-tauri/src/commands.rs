@@ -224,7 +224,7 @@ pub async fn get_note(
 
     let note = db::operations::get_note(&conn, uuid.to_string(), workspace.master_encryption_key)?;
 
-    db::operations::set_latest_note(&conn, workspace.id, Some(note.id.clone()))?;
+    Workspace::update_latest_note(&conn, workspace.id, Some(&note.id))?;
 
     Ok(NoteResponse::from(note))
 }
@@ -511,7 +511,7 @@ pub async fn delete_note(
 
     db::operations::update_note(&conn, note, workspace.master_encryption_key)?;
 
-    db::operations::set_latest_note(&conn, workspace.id, None)?;
+    Workspace::update_latest_note(&conn, workspace.id, None)?;
 
     Ok(())
 }
@@ -543,14 +543,13 @@ pub async fn get_latest_note_id(
     state: State<'_, Mutex<AppState>>,
 ) -> Result<Option<String>, CommandError> {
     let state = state.lock().await;
-    let conn = state.database.lock().await;
 
     let workspace = state
         .workspace
         .clone()
         .ok_or_else(|| CommandError::unauthorized("No workspace is loaded"))?;
 
-    db::operations::get_latest_note(&conn, workspace.id).map_err(CommandError::from)
+    Ok(workspace.latest_note_id)
 }
 
 #[tauri::command(rename_all = "snake_case")]

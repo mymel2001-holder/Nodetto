@@ -22,5 +22,12 @@ pub fn init(db_path: PathBuf) -> Result<Mutex<Connection>> {
     schema::Common::create(&conn)?;
     trace!("Tables have been created correctly");
 
+    // Migrations: ignore errors for columns that already exist
+    let _ = conn.execute(
+        "ALTER TABLE workspace ADD COLUMN latest_note_id TEXT",
+        [],
+    );
+    trace!("Migrations applied");
+
     Ok(Mutex::new(conn))
 }
