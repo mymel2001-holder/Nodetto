@@ -4,6 +4,7 @@ import { syncStatusEnum, useGeneral } from "../store/general";
 import { useModals } from "../store/modals";
 import { listen } from "@tauri-apps/api/event";
 import { trace } from "@tauri-apps/plugin-log";
+import { handleCommandError, extractMessage } from "../lib/errors";
 
 export type Workspace = {
   id: number;
@@ -119,14 +120,14 @@ export default function AccountMenu() {
       resetAuthForm();
       window.location.reload();
     } catch (e) {
-      setAuthError(e as string || `Failed to ${authMode === "login" ? "login" : "create account"}`);
+      setAuthError(extractMessage(e, `Failed to ${authMode === "login" ? "login" : "create account"}`));
     } finally {
       setAuthLoading(false);
     }
   }
 
   async function handleServerLogout() {
-    await invoke("sync_logout").catch((e) => console.error(e));
+    await invoke("sync_logout").catch(handleCommandError);
   }
 
   async function switchAccount(workspace_name: string) {
@@ -138,24 +139,21 @@ export default function AccountMenu() {
 
       window.location.reload();
     } catch (e) {
-      console.error("Failed to switch account:", e);
+      handleCommandError(e);
     }
   }
 
   async function addWorkspace() {
-    console.log("all workspaces are:", allWorkspaces);
-    console.log("adding workspace:", allWorkspaces.length + 1)
-
     //TODO
     let newName = "workspace " + (allWorkspaces.length + 1)
 
-    await invoke("create_workspace", { workspace_name: newName }).catch((e) => console.error(e));
-    await invoke("set_logged_workspace", { workspace_name: newName });
+    await invoke("create_workspace", { workspace_name: newName }).catch(handleCommandError);
+    await invoke("set_logged_workspace", { workspace_name: newName }).catch(handleCommandError);
     await invoke("get_logged_workspace").then((u) => u as Workspace | null).then((u) => {
       if (u) {
         setWorkspace(u);
       };
-    }).catch((e) => console.error(e));
+    }).catch(handleCommandError);
 
     window.location.reload();
   }

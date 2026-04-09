@@ -1,3 +1,4 @@
+import { handleCommandError } from "../lib/errors";
 import { invoke } from "@tauri-apps/api/core";
 import { useGeneral } from "../store/general";
 import { useModals } from "../store/modals";
@@ -10,13 +11,13 @@ export default function LogoutWorkspaceConfirmModal() {
 
   async function handleLogout() {
     // Clear workspace session
-    await invoke("logout").catch((e) => console.error(e));
+    await invoke("logout").catch(handleCommandError);
     trace("logout current workspace...")
 
     let backend_workspaces = await invoke("get_workspaces")
       .then((u) => u as Workspace[])
       .catch((e) => {
-        console.error(e);
+        handleCommandError(e);
         return [];
       });
 
@@ -29,7 +30,7 @@ export default function LogoutWorkspaceConfirmModal() {
       await invoke("set_logged_workspace", { workspace_name: backend_workspaces[0].workspace_name });
     } else {
       trace("No other workspace found, creating a new one")
-      await invoke("create_workspace", { workspace_name: "workspace 1" }).catch((e) => console.error(e));
+      await invoke("create_workspace", { workspace_name: "workspace 1" }).catch(handleCommandError);
       await invoke("set_logged_workspace", { workspace_name: "workspace 1" });
     }
     

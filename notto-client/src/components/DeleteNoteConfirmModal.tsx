@@ -1,3 +1,4 @@
+import { handleCommandError } from "../lib/errors";
 import { invoke } from "@tauri-apps/api/core";
 import { useGeneral, Note } from "../store/general";
 import { useModals } from "../store/modals";
@@ -13,7 +14,7 @@ export default function DeleteNoteConfirmModal() {
       trace("getting notes metadata from: " + workspace?.id + " - " + workspace?.workspace_name)
       invoke("get_all_notes_metadata", { id_workspace: workspace?.id })
         .then((fetched) => setNotes(fetched as Note[]))
-        .catch((e) => console.error(e));
+        .catch(handleCommandError);
     }
   }
 
@@ -39,7 +40,7 @@ export default function DeleteNoteConfirmModal() {
       }
     }
 
-    await invoke("delete_note", { id: noteIdToDelete }).catch((e) => console.error(e));
+    await invoke("delete_note", { id: noteIdToDelete }).catch(handleCommandError);
 
     setShowDeleteNoteConfirm(false);
     get_notes_metadata();

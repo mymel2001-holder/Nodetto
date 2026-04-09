@@ -1,3 +1,4 @@
+import { handleCommandError } from "../lib/errors";
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -42,7 +43,7 @@ export default function ConflictModal() {
 
       invoke("get_note", { id: serverNote.id })
         .then((note) => setLocalNote(note as NoteContent))
-        .catch((e) => console.error(e));
+        .catch(handleCommandError);
     }).then((fn) => { unlisten = fn; });
 
     return () => { unlisten?.(); };
@@ -53,7 +54,7 @@ export default function ConflictModal() {
     setResolving(true);
 
     await invoke("handle_conflict", { id: conflictNote.id, local: keepLocal })
-      .catch((e) => console.error(e));
+      .catch(handleCommandError);
 
     setConflictNote(null);
     setLocalNote(null);

@@ -1,3 +1,4 @@
+import { handleCommandError } from "../lib/errors";
 import { useEffect, useState } from "react";
 import { useGeneral, Note } from "../store/general";
 import { useModals } from "../store/modals";
@@ -333,7 +334,7 @@ export default function Home() {
       trace("getting notes metadata from: " + workspace?.id + " - " + workspace?.workspace_name);
       invoke("get_all_notes_metadata", { id_workspace: workspace?.id })
         .then((fetched) => setNotes(fetched as Note[]))
-        .catch((e) => console.error(e));
+        .catch(handleCommandError);
     }
   }
 
@@ -341,14 +342,14 @@ export default function Home() {
     if (!currentNote) {
       invoke("get_latest_note_id")
         .then((id) => { if (id as string | null) get_note(id as string); })
-        .catch((e) => console.error(e));
+        .catch(handleCommandError);
     }
   }
 
   async function create_note(parent_id: string | null = null) {
     await invoke("create_note", { title: "New Note", parent_id })
       .then((uuid) => get_note(uuid as string))
-      .catch((e) => console.error(e));
+      .catch(handleCommandError);
 
     get_notes_metadata();
   }
@@ -356,7 +357,7 @@ export default function Home() {
   async function create_folder(parent_id: string | null = null) {
     await invoke("create_folder", { title: "New Folder", parent_id })
       .then(() => get_notes_metadata())
-      .catch((e) => console.error(e));
+      .catch(handleCommandError);
   }
 
   async function toggle_folder(note: Note) {
@@ -365,7 +366,7 @@ export default function Home() {
         invoke("edit_note", { note: { ...fullNote, folder_open: !note.folder_open } })
           .then(() => get_notes_metadata());
       })
-      .catch((e) => console.error(e));
+      .catch(handleCommandError);
   }
 
   async function get_note(id: string) {
@@ -374,18 +375,18 @@ export default function Home() {
         setCurrentNote(note as NoteContent);
         trace("note received: " + (note as NoteContent).id);
       })
-      .catch((e) => console.error(e));
+      .catch(handleCommandError);
   }
 
   async function edit_note(content: string) {
     if (currentNote && currentNote.content === content) return;
     const note: NoteContent = { ...currentNote!, content };
     setCurrentNote(note);
-    invoke("edit_note", { note }).catch((e) => console.error(e));
+    invoke("edit_note", { note }).catch(handleCommandError);
   }
 
   async function restore_note(id: string) {
-    await invoke("restore_note", { id }).catch((e) => console.error(e));
+    await invoke("restore_note", { id }).catch(handleCommandError);
     setCurrentNote(null);
     get_notes_metadata();
   }
@@ -393,7 +394,7 @@ export default function Home() {
   async function edit_note_title(title: string) {
     const note: NoteContent = { ...currentNote!, title };
     setCurrentNote(note);
-    await invoke("edit_note", { note }).catch((e) => console.error(e));
+    await invoke("edit_note", { note }).catch(handleCommandError);
     get_notes_metadata();
   }
 
@@ -403,7 +404,7 @@ export default function Home() {
         invoke("edit_note", { note: { ...fullNote, parent_id: newParentId } })
           .then(() => get_notes_metadata());
       })
-      .catch((e) => console.error(e));
+      .catch(handleCommandError);
   }
 
   function isDescendantOf(nodeId: string, potentialAncestorId: string): boolean {
