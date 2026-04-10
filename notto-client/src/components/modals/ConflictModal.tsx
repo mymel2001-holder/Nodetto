@@ -1,9 +1,9 @@
-import { handleCommandError } from "../lib/errors";
+import { handleCommandError } from "../../lib/errors";
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { useModals } from "../store/modals";
-import { NoteContent } from "./Home";
+import { useModals } from "../../store/modals";
+import { NoteContent } from "../../types";
 
 type DiffLine = {
   text: string;
@@ -13,12 +13,12 @@ type DiffLine = {
 function computeDiff(local: string, server: string): { local: DiffLine[]; server: DiffLine[] } {
   const localLines = local.split("\n");
   const serverLines = server.split("\n");
-  const maxLen = Math.max(localLines.length, serverLines.length);
+  const len = Math.max(localLines.length, serverLines.length);
 
   const localDiff: DiffLine[] = [];
   const serverDiff: DiffLine[] = [];
 
-  for (let i = 0; i < maxLen; i++) {
+  for (let i = 0; i < len; i++) {
     const l = localLines[i] ?? "";
     const s = serverLines[i] ?? "";
     const type = l === s ? "same" : "changed";
@@ -29,6 +29,41 @@ function computeDiff(local: string, server: string): { local: DiffLine[]; server
   return { local: localDiff, server: serverDiff };
 }
 
+function DiffPanel({
+  label,
+  labelColor,
+  date,
+  lines,
+  highlightClass,
+}: {
+  label: string;
+  labelColor: string;
+  date: string;
+  lines: DiffLine[];
+  highlightClass: string;
+}) {
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-4 py-2.5 bg-slate-700/40 border-b border-slate-700 shrink-0 flex items-center justify-between">
+        <span className={`text-xs font-semibold uppercase tracking-wider ${labelColor}`}>{label}</span>
+        <span className="text-xs text-slate-500">{date}</span>
+      </div>
+      <div className="flex-1 overflow-y-auto font-mono text-xs">
+        {lines.map((line, i) => (
+          <div
+            key={i}
+            className={`px-4 py-0.5 whitespace-pre-wrap break-all leading-5 ${
+              line.type === "changed" ? highlightClass : "text-slate-300"
+            }`}
+          >
+            {line.text || "\u00A0"}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function ConflictModal() {
   const { conflictNote, setConflictNote } = useModals();
   const [localNote, setLocalNote] = useState<NoteContent | null>(null);
@@ -36,26 +71,20 @@ export default function ConflictModal() {
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
-
     listen<NoteContent>("conflict", (event) => {
       const serverNote = event.payload;
       setConflictNote(serverNote);
-
       invoke("get_note", { id: serverNote.id })
         .then((note) => setLocalNote(note as NoteContent))
         .catch(handleCommandError);
     }).then((fn) => { unlisten = fn; });
-
     return () => { unlisten?.(); };
   }, []);
 
   async function handleResolve(keepLocal: boolean) {
     if (!conflictNote) return;
     setResolving(true);
-
-    await invoke("handle_conflict", { id: conflictNote.id, local: keepLocal })
-      .catch(handleCommandError);
-
+    await invoke("handle_conflict", { id: conflictNote.id, local: keepLocal }).catch(handleCommandError);
     setConflictNote(null);
     setLocalNote(null);
     setResolving(false);
@@ -64,15 +93,12 @@ export default function ConflictModal() {
   if (!conflictNote || !localNote) return null;
 
   const diff = computeDiff(localNote.content, conflictNote.content);
-  const localDate = new Date(localNote.updated_at).toLocaleString();
-  const serverDate = new Date(conflictNote.updated_at).toLocaleString();
 
   return (
     <div className="min-h-screen min-w-screen pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] flex items-center justify-center p-4 fixed z-50">
       <div className="fixed inset-0 backdrop-blur-sm bg-black/40" />
 
       <div className="relative bg-slate-800 rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[90vh]">
-
         {/* Header */}
         <div className="p-6 border-b border-slate-700 shrink-0">
           <div className="flex items-center gap-3 mb-1">
@@ -90,48 +116,20 @@ export default function ConflictModal() {
 
         {/* Diff area */}
         <div className="flex flex-1 overflow-hidden divide-x divide-slate-700 min-h-0">
-
-          {/* Local version */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="px-4 py-2.5 bg-slate-700/40 border-b border-slate-700 shrink-0 flex items-center justify-between">
-              <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider">Local</span>
-              <span className="text-xs text-slate-500">{localDate}</span>
-            </div>
-            <div className="flex-1 overflow-y-auto font-mono text-xs">
-              {diff.local.map((line, i) => (
-                <div
-                  key={i}
-                  className={`px-4 py-0.5 whitespace-pre-wrap break-all leading-5 ${line.type === "changed"
-                    ? "bg-blue-500/10 text-blue-200"
-                    : "text-slate-300"
-                    }`}
-                >
-                  {line.text || "\u00A0"}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Server version */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="px-4 py-2.5 bg-slate-700/40 border-b border-slate-700 shrink-0 flex items-center justify-between">
-              <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Server</span>
-              <span className="text-xs text-slate-500">{serverDate}</span>
-            </div>
-            <div className="flex-1 overflow-y-auto font-mono text-xs">
-              {diff.server.map((line, i) => (
-                <div
-                  key={i}
-                  className={`px-4 py-0.5 whitespace-pre-wrap break-all leading-5 ${line.type === "changed"
-                    ? "bg-emerald-500/10 text-emerald-200"
-                    : "text-slate-300"
-                    }`}
-                >
-                  {line.text || "\u00A0"}
-                </div>
-              ))}
-            </div>
-          </div>
+          <DiffPanel
+            label="Local"
+            labelColor="text-blue-400"
+            date={new Date(localNote.updated_at).toLocaleString()}
+            lines={diff.local}
+            highlightClass="bg-blue-500/10 text-blue-200"
+          />
+          <DiffPanel
+            label="Server"
+            labelColor="text-emerald-400"
+            date={new Date(conflictNote.updated_at).toLocaleString()}
+            lines={diff.server}
+            highlightClass="bg-emerald-500/10 text-emerald-200"
+          />
         </div>
 
         {/* Actions */}
