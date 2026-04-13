@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use mysql_async::{Conn, prelude::Queryable};
+use mysql_async::{Conn, params, prelude::Queryable};
 
 /// Each migration is a (version, sql) pair. Version must be monotonically increasing.
 /// Append new entries here to add future migrations; never edit existing ones.
@@ -38,7 +38,7 @@ pub async fn run(conn: &mut Conn) -> Result<()> {
 
         conn.exec_drop(
             "INSERT INTO schema_migrations (version, applied_at) VALUES (:version, :applied_at)",
-            mysql_async::params! {
+            params! {
                 "version" => version,
                 "applied_at" => chrono::Local::now().to_utc().timestamp(),
             },
