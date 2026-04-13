@@ -8,8 +8,17 @@ on:
 
 jobs:
   build-linux:
-    name: Build Linux Server Packages
-    runs-on: ubuntu-latest
+    name: Build Linux Server (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: x86_64
+          - runner: ubuntu-24.04-arm
+            arch: aarch64
+
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - uses: actions/checkout@v5
@@ -37,7 +46,7 @@ jobs:
 
       - name: Create tarball
         run: |
-          tar -czf notto-server-${{ github.ref_name }}-linux-x86_64.tar.gz \
+          tar -czf notto-server-${{ github.ref_name }}-linux-${{ matrix.arch }}.tar.gz \
             -C target/release notto-server
 
       - uses: softprops/action-gh-release@v2
@@ -46,6 +55,6 @@ jobs:
           files: |
             target/debian/*.deb
             target/generate-rpm/*.rpm
-            notto-server-${{ github.ref_name }}-linux-x86_64.tar.gz
+            notto-server-${{ github.ref_name }}-linux-${{ matrix.arch }}.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
