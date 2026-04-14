@@ -37,9 +37,18 @@ export default function AccountMenu() {
   const authMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    listen<syncStatusEnum>("sync-status", (event) => {
-      trace("sync status: " + event.payload);
-      setSyncStatus(event.payload);
+    /** `SyncStatus::Error(String)` serializes as `{ Error: string }`, others as plain strings. */
+    type SyncStatusPayload = syncStatusEnum | { Error: string };
+
+    listen<SyncStatusPayload>("sync-status", (event) => {
+      const payload = event.payload;
+      if (typeof payload === "object" && "Error" in payload) {
+        trace("sync status: Error - " + payload.Error);
+        setSyncStatus(syncStatusEnum.Error, payload.Error);
+      } else {
+        trace("sync status: " + payload);
+        setSyncStatus(payload as syncStatusEnum);
+      }
     });
   }, []);
 

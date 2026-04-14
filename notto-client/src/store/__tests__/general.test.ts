@@ -20,6 +20,7 @@ beforeEach(() => {
     allWorkspaces: [],
     notes: [],
     syncStatus: syncStatusEnum.Offline,
+    syncErrorMessage: null,
   });
 });
 
@@ -67,7 +68,11 @@ describe("useGeneral", () => {
     useGeneral.getState().setSyncStatus(syncStatusEnum.Synched);
     expect(useGeneral.getState().syncStatus).toBe(syncStatusEnum.Synched);
 
-    useGeneral.getState().setSyncStatus(syncStatusEnum.Error);
+    useGeneral.getState().setSyncStatus(syncStatusEnum.Error, "403 Forbidden");
     expect(useGeneral.getState().syncStatus).toBe(syncStatusEnum.Error);
+    expect(useGeneral.getState().syncErrorMessage).toBe("403 Forbidden");
+
+    useGeneral.getState().setSyncStatus(syncStatusEnum.Synched);
+    expect(useGeneral.getState().syncErrorMessage).toBeNull();
   });
 });
