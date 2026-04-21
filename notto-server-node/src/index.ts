@@ -7,32 +7,54 @@ import { v4 as uuidv4 } from 'uuid';
 
 dotenv.config();
 
+process.on('uncaughtException', (err) => {
+    console.error('FATAL: Uncaught Exception:', err);
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('FATAL: Unhandled Rejection at:', promise, 'reason:', reason);
+    process.exit(1);
+});
+
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Initialize QuickDB
-const db = new QuickDB();
+console.log('Initializing database...');
+// Initialize QuickDB with explicit file
+const db = new QuickDB({ filePath: 'nodetto.sqlite' });
+const usersTable = db.table('users');
+const tokensTable = db.table('tokens');
+const notesTable = db.table('notes');
+const configTable = db.table('config');
 
 app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
+app.get('/', (req, res) => {
+    res.send('Nodetto Server is running');
+});
+
 // Middleware to verify token
 async function verifyToken(req: express.Request, res: express.Response, next: express.NextFunction) {
-    const { username, token } = req.body.token ? req.body : req.query;
+    const username = (req.body?.username || req.query.username) as string;
+    const token = (req.body?.token || req.query.token) as string | number[];
+
     if (!username || !token) {
         return res.status(401).json({ message: 'Missing username or token' });
     }
 
-    const user: any = await db.get(`users.${username}`);
+    const user: any = await usersTable.get(username as string);
     if (!user) {
         return res.status(404).json({ message: "User doesn't exist" });
     }
 
-    const tokens: any[] = await db.get(`tokens.${user.id}`) || [];
-    const tokenBytes = Buffer.from(token, 'hex'); // Assuming token is hex string from client
+    const tokens: any[] = await tokensTable.get(user.id.toString()) || [];
+    const tokenBytes = typeof token === 'string' 
+        ? Buffer.from(token, 'hex') 
+        : Buffer.from(token as any);
     
-    // In Rust version, token was Vec<u8>. Client sends hex.
     const valid = tokens.some(t => Buffer.from(t.token).equals(tokenBytes));
 
     if (!valid) {
@@ -47,26 +69,26 @@ app.post('/create_account', async (req, res) => {
     const user = req.body;
     console.log('received create_account', user.username);
 
-    const existingUser = await db.get(`users.${user.username}`);
+    const existingUser = await usersTable.get(user.username);
     if (existingUser) {
         return res.status(409).json({ message: 'This username already exist' });
     }
 
     // Assign an ID if not present
     if (!user.id) {
-        const lastId = (await db.get('config.last_user_id')) || 0;
+        const lastId = (await configTable.get('last_user_id')) || 0;
         user.id = lastId + 1;
-        await db.set('config.last_user_id', user.id);
+        await configTable.set('last_user_id', user.id);
     }
 
-    await db.set(`users.${user.username}`, user);
+    await usersTable.set(user.username, user);
     console.log('create_account: completed');
     res.sendStatus(200);
 });
 
 app.get('/login', async (req, res) => {
     const { username } = req.query;
-    const user: any = await db.get(`users.${username}`);
+    const user: any = await usersTable.get(username as string);
 
     if (!user) {
         return res.status(404).json({ message: "User doesn't exist" });
@@ -80,7 +102,7 @@ app.get('/login', async (req, res) => {
 
 app.post('/login', async (req, res) => {
     const { username, login_hash } = req.body;
-    const user: any = await db.get(`users.${username}`);
+    const user: any = await usersTable.get(username as string);
 
     if (!user) {
         return res.status(404).json({ message: "User doesn't exist" });
@@ -98,9 +120,9 @@ app.post('/login', async (req, res) => {
         token: Array.from(token) // Store as array for QuickDB/JSON compatibility
     };
 
-    const tokens: any[] = await db.get(`tokens.${user.id}`) || [];
+    const tokens: any[] = await tokensTable.get(user.id.toString()) || [];
     tokens.push(userToken);
-    await db.set(`tokens.${user.id}`, tokens);
+    await tokensTable.set(user.id.toString(), tokens);
 
     res.json({
         salt_data: user.salt_data,
@@ -115,8 +137,10 @@ app.post('/notes', verifyToken, async (req, res) => {
     const user = (req as any).user;
     const results = [];
 
+    const userNotesTable = notesTable.table(`u${user.id}`);
+
     for (const note of notes) {
-        const existingNote: any = await db.get(`notes.${user.id}.${note.uuid}`);
+        const existingNote: any = await userNotesTable.get(note.uuid);
 
         if (existingNote) {
             if (existingNote.updated_at > note.updated_at && !force) {
@@ -126,13 +150,13 @@ app.post('/notes', verifyToken, async (req, res) => {
                 });
             } else {
                 note.updated_at = Math.floor(Date.now() / 1000);
-                await db.set(`notes.${user.id}.${note.uuid}`, note);
-                results.push({ uuid: note.uuid, status: 'Ok' });
+                await userNotesTable.set(note.uuid, note);
+                results.push({ uuid: note.uuid, status: 'Ok', updated_at: note.updated_at });
             }
         } else {
             note.updated_at = Math.floor(Date.now() / 1000);
-            await db.set(`notes.${user.id}.${note.uuid}`, note);
-            results.push({ uuid: note.uuid, status: 'Ok' });
+            await userNotesTable.set(note.uuid, note);
+            results.push({ uuid: note.uuid, status: 'Ok', updated_at: note.updated_at });
         }
     }
 
@@ -144,8 +168,11 @@ app.get('/notes', verifyToken, async (req, res) => {
     const user = (req as any).user;
     const minTimestamp = parseInt(updated_at as string) || 0;
 
-    const allNotes: any = await db.get(`notes.${user.id}`) || {};
-    const filteredNotes = Object.values(allNotes).filter((note: any) => note.updated_at > minTimestamp);
+    const userNotesTable = notesTable.table(`u${user.id}`);
+    const allNotes: any[] = await userNotesTable.all();
+    const filteredNotes = allNotes
+        .map(n => n.value)
+        .filter((note: any) => note.updated_at >= minTimestamp);
 
     res.json(filteredNotes);
 });
@@ -154,12 +181,19 @@ app.get('/note', verifyToken, async (req, res) => {
     const { note_id } = req.query;
     const user = (req as any).user;
 
-    const note = await db.get(`notes.${user.id}.${note_id}`);
+    const userNotesTable = notesTable.table(`u${user.id}`);
+    const note = await userNotesTable.get(note_id as string);
     if (!note) {
         return res.status(404).json({ message: "Note doesn't exist" });
     }
 
     res.json(note);
+});
+
+// Error handling middleware
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error('Express Error:', err);
+    res.status(500).json({ message: 'Internal Server Error', error: err.message });
 });
 
 app.listen(port, () => {
