@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { Note, Workspace } from "../types";
 
-/** Mirrors the `SyncStatus` enum emitted by the Tauri sync service. */
+/** Mirrors the `SyncStatus` enum from the sync service. */
 export enum syncStatusEnum {
   Synched = "Synched",
   Syncing = "Syncing",

@@ -1,10 +1,6 @@
-import { handleCommandError } from "../lib/errors";
 import { useEffect, useState } from "react";
 import { useGeneral } from "../store/general";
 import { useModals } from "../store/modals";
-import { invoke } from "@tauri-apps/api/core";
-import { trace } from "@tauri-apps/plugin-log";
-import { listen } from "@tauri-apps/api/event";
 import { Note, NoteContent } from "../types";
 import Sidebar from "./sidebar/Sidebar";
 import NoteHeader from "./note/NoteHeader";
@@ -12,6 +8,10 @@ import FolderView from "./note/FolderView";
 import NoteEditor from "./note/NoteEditor";
 import Icon from "./icons/Icon";
 import { TreeCallbacks } from "./sidebar/NoteTree";
+import * as commands from "../lib/commands";
+import * as sync from "../lib/sync";
+import { handleCommandError } from "../lib/errors";
+import * as db from "../lib/db";
 
 export default function Home() {
   const { workspace, notes, setNotes } = useGeneral();
@@ -21,19 +21,29 @@ export default function Home() {
   const [showDeleted, setShowDeleted] = useState(false);
 
   useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    listen<Note[]>("new_note_metadata", (event) => {
-      const received = event.payload;
-      setNotes(received);
-      if (currentNote) {
-        const updated = received.find((n) => n.id === currentNote.id);
-        if (updated && updated.updated_at !== currentNote.updated_at) {
-          get_note(updated.id);
-        }
-      }
-    }).then((fn) => { unlisten = fn; });
-    return () => { unlisten?.(); };
+    // Instead of Tauri events, we'll poll the DB or just refresh after sync
+    // For now, let's refresh metadata every 5 seconds if not synced
+    const interval = setInterval(() => {
+      get_notes_metadata();
+    }, 5000);
+    return () => clearInterval(interval);
   }, [currentNote]);
+
+  // Sync effect
+  useEffect(() => {
+    if (!workspace) return;
+    const { setSyncStatus } = useGeneral.getState();
+    const { setConflictNote } = useModals.getState();
+    const interval = setInterval(async () => {
+      const fullWs = await db.db.workspaces.get(workspace.id);
+      if (fullWs) {
+        await sync.syncNotes(fullWs as any, (status) => setSyncStatus(status as any), (conflictNote) => {
+          setConflictNote(conflictNote as any);
+        });
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [workspace]);
 
   useEffect(() => {
     if (workspace) {
@@ -59,33 +69,31 @@ export default function Home() {
   /** Fetches all note metadata for the active workspace and updates the store. */
   function get_notes_metadata() {
     if (!workspace) return;
-    trace("getting notes metadata from: " + workspace.id + " - " + workspace.workspace_name);
-    invoke("get_all_notes_metadata", { id_workspace: workspace.id })
-      .then((fetched) => setNotes(fetched as Note[]))
+    commands.getAllNotesMetadata(workspace.id)
+      .then((fetched) => setNotes(fetched as any))
       .catch(handleCommandError);
   }
 
   /** Opens the last note the user had open when a workspace loads. */
   function get_latest_note() {
     if (currentNote) return;
-    invoke("get_latest_note_id")
+    commands.getLatestNoteId()
       .then((id) => { if (id) get_note(id as string); })
       .catch(handleCommandError);
   }
 
   /** Fetches the full decrypted content of a note and sets it as the current note. */
   async function get_note(id: string) {
-    await invoke("get_note", { id })
+    await commands.getNote(id)
       .then((note) => {
-        setCurrentNote(note as NoteContent);
-        trace("note received: " + (note as NoteContent).id);
+        setCurrentNote(note as any);
       })
       .catch(handleCommandError);
   }
 
   /** Creates a new note under `parent_id` and immediately opens it. */
   async function create_note(parent_id: string | null = null) {
-    await invoke("create_note", { title: "New Note", parent_id })
+    await commands.createNote("New Note", parent_id)
       .then((uuid) => get_note(uuid as string))
       .catch(handleCommandError);
     get_notes_metadata();
@@ -93,16 +101,16 @@ export default function Home() {
 
   /** Creates a new folder under `parent_id` and refreshes the note tree. */
   async function create_folder(parent_id: string | null = null) {
-    await invoke("create_folder", { title: "New Folder", parent_id })
+    await commands.createFolder("New Folder", parent_id)
       .then(() => get_notes_metadata())
       .catch(handleCommandError);
   }
 
   /** Toggles a folder's open/closed state in the sidebar. */
   async function toggle_folder(note: Note) {
-    invoke("get_note", { id: note.id })
+    commands.getNote(note.id)
       .then((full: any) =>
-        invoke("edit_note", { note: { ...full, folder_open: !note.folder_open } })
+        commands.editNote({ ...full, folder_open: !note.folder_open })
           .then(() => get_notes_metadata())
       )
       .catch(handleCommandError);
@@ -113,29 +121,29 @@ export default function Home() {
     if (!currentNote || currentNote.content === content) return;
     const note: NoteContent = { ...currentNote, content };
     setCurrentNote(note);
-    invoke("edit_note", { note }).catch(handleCommandError);
+    commands.editNote(note as any).catch(handleCommandError);
   }
 
   /** Updates the note title and refreshes the sidebar metadata. */
   async function edit_note_title(title: string) {
     const note: NoteContent = { ...currentNote!, title };
     setCurrentNote(note);
-    await invoke("edit_note", { note }).catch(handleCommandError);
+    await commands.editNote(note as any).catch(handleCommandError);
     get_notes_metadata();
   }
 
   /** Restores a soft-deleted note and clears the current selection. */
   async function restore_note(id: string) {
-    await invoke("restore_note", { id }).catch(handleCommandError);
+    await commands.restoreNote(id).catch(handleCommandError);
     setCurrentNote(null);
     get_notes_metadata();
   }
 
   /** Moves a note or folder to a new parent (drag-and-drop handler). */
   async function move_item(id: string, newParentId: string | null) {
-    invoke("get_note", { id })
+    commands.getNote(id)
       .then((full: any) =>
-        invoke("edit_note", { note: { ...full, parent_id: newParentId } })
+        commands.editNote({ ...full, parent_id: newParentId })
           .then(() => get_notes_metadata())
       )
       .catch(handleCommandError);

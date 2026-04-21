@@ -1,14 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { syncStatusEnum, useGeneral } from "../../store/general";
 import { useModals } from "../../store/modals";
-import { listen } from "@tauri-apps/api/event";
-import { trace } from "@tauri-apps/plugin-log";
 import { handleCommandError, extractMessage } from "../../lib/errors";
-import { Workspace } from "../../types";
 import Icon from "../icons/Icon";
 import AuthForm from "./AuthForm";
 import WorkspaceMenu from "./WorkspaceMenu";
+import * as commands from "../../lib/commands";
+import * as db from "../../lib/db";
 
 type AuthMode = "login" | "register";
 
@@ -21,7 +19,7 @@ const SYNC_LABEL: Record<syncStatusEnum, string> = {
 };
 
 export default function AccountMenu() {
-  const { workspace, setWorkspace, allWorkspaces, setSyncStatus, syncStatus } = useGeneral();
+  const { workspace, setWorkspace, allWorkspaces, syncStatus } = useGeneral();
   const { setShowLogoutWorkspaceConfirm } = useModals();
 
   const [showMenu, setShowMenu] = useState(false);
@@ -37,14 +35,11 @@ export default function AccountMenu() {
   const authMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    listen<syncStatusEnum>("sync-status", (event) => {
-      trace("sync status: " + event.payload);
-      setSyncStatus(event.payload);
-    });
+    // Sync status is handled by Home.tsx interval now
   }, []);
 
   useEffect(() => {
-    invoke("get_version").then((v) => setVersionNumber(v as string));
+    setVersionNumber("1.0.0-pwa");
   }, []);
 
   useEffect(() => {
@@ -69,9 +64,9 @@ export default function AccountMenu() {
     setAuthError("");
     try {
       if (authMode === "register") {
-        await invoke("sync_create_account", { username, password, instance });
+        await commands.syncCreateAccount(username, password, instance);
       }
-      await invoke("sync_login", { username, password, instance });
+      await commands.syncLogin(username, password, instance);
       setShowAuthMenu(false);
       setShowMenu(false);
       window.location.reload();
@@ -84,8 +79,8 @@ export default function AccountMenu() {
 
   async function switchAccount(workspace_name: string) {
     try {
-      const ws = await invoke("set_logged_workspace", { workspace_name }) as Workspace;
-      setWorkspace(ws);
+      const ws = await commands.setLoggedWorkspace(workspace_name);
+      setWorkspace(ws as any);
       setShowMenu(false);
       setShowWorkspaceMenu(false);
       window.location.reload();
@@ -96,12 +91,9 @@ export default function AccountMenu() {
 
   async function addWorkspace() {
     const name = "workspace " + (allWorkspaces.length + 1);
-    await invoke("create_workspace", { workspace_name: name }).catch(handleCommandError);
-    await invoke("set_logged_workspace", { workspace_name: name }).catch(handleCommandError);
-    const ws = await invoke("get_logged_workspace")
-      .then((u) => u as Workspace | null)
-      .catch(() => null);
-    if (ws) setWorkspace(ws);
+    await commands.createWorkspace(name).catch(handleCommandError);
+    const ws = await commands.getLoggedWorkspace().catch(() => null);
+    if (ws) setWorkspace(ws as any);
     window.location.reload();
   }
 
@@ -200,7 +192,16 @@ export default function AccountMenu() {
                 </button>
               ) : (
                 <button
-                  onClick={() => invoke("sync_logout").catch(handleCommandError)}
+                  onClick={async () => {
+                    const ws = await db.getLoggedWorkspace();
+                    if (ws) {
+                      ws.token = null;
+                      ws.username = null;
+                      ws.instance = null;
+                      await db.updateWorkspace(ws);
+                      window.location.reload();
+                    }
+                  }}
                   className="w-full px-2 md:px-3 py-2 text-xs md:text-sm text-red-400 hover:bg-slate-700 transition-colors text-left flex items-center gap-2"
                 >
                   <Icon name="logoutIn" />

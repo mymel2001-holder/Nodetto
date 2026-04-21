@@ -12,7 +12,7 @@ export type CommandError = {
   message: string;
 };
 
-/** Returns true if `e` is a structured `CommandError` from the Tauri backend. */
+/** Returns true if `e` is a structured `CommandError` from the backend. */
 function isCommandError(e: unknown): e is CommandError {
   return (
     typeof e === "object" &&
@@ -23,7 +23,7 @@ function isCommandError(e: unknown): e is CommandError {
   );
 }
 
-/** Routes a Tauri command error to the toast system. Falls back gracefully for unexpected shapes. */
+/** Routes a command error to the toast system. Falls back gracefully for unexpected shapes. */
 export function handleCommandError(e: unknown): void {
   const { addToast } = useToasts.getState();
 

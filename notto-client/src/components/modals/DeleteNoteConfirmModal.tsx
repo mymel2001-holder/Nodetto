@@ -1,9 +1,7 @@
 import { handleCommandError } from "../../lib/errors";
-import { invoke } from "@tauri-apps/api/core";
 import { useGeneral } from "../../store/general";
-import { Note } from "../../types";
 import { useModals } from "../../store/modals";
-import { trace } from "@tauri-apps/plugin-log";
+import * as commands from "../../lib/commands";
 
 export default function DeleteNoteConfirmModal() {
   const { workspace, notes, setNotes } = useGeneral();
@@ -11,9 +9,8 @@ export default function DeleteNoteConfirmModal() {
 
   function get_notes_metadata() {
     if (!workspace) return;
-    trace("getting notes metadata from: " + workspace.id + " - " + workspace.workspace_name);
-    invoke("get_all_notes_metadata", { id_workspace: workspace.id })
-      .then((fetched) => setNotes(fetched as Note[]))
+    commands.getAllNotesMetadata(workspace.id)
+      .then((fetched) => setNotes(fetched as any))
       .catch(handleCommandError);
   }
 
@@ -22,18 +19,16 @@ export default function DeleteNoteConfirmModal() {
     const note = notes.find((n) => n.id === noteIdToDelete);
     if (!note) return;
 
-    trace("deleting: " + noteIdToDelete + " is_folder: " + note.is_folder);
-
     if (note.is_folder) {
       // Move direct children up to the folder's parent before deleting
       const children = notes.filter((n) => n.parent_id === noteIdToDelete);
       for (const child of children) {
-        const full: any = await invoke("get_note", { id: child.id });
-        await invoke("edit_note", { note: { ...full, parent_id: note.parent_id } });
+        const full: any = await commands.getNote(child.id);
+        await commands.editNote({ ...full, parent_id: note.parent_id });
       }
     }
 
-    await invoke("delete_note", { id: noteIdToDelete }).catch(handleCommandError);
+    await commands.deleteNote(noteIdToDelete).catch(handleCommandError);
     setShowDeleteNoteConfirm(false);
     get_notes_metadata();
   }

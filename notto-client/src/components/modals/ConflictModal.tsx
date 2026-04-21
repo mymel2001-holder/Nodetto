@@ -1,9 +1,9 @@
 import { handleCommandError } from "../../lib/errors";
 import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 import { useModals } from "../../store/modals";
 import { NoteContent } from "../../types";
+import * as commands from "../../lib/commands";
+import * as db from "../../lib/db";
 
 type DiffLine = {
   text: string;
@@ -70,24 +70,39 @@ export default function ConflictModal() {
   const [resolving, setResolving] = useState(false);
 
   useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    listen<NoteContent>("conflict", (event) => {
-      const serverNote = event.payload;
-      setConflictNote(serverNote);
-      invoke("get_note", { id: serverNote.id })
-        .then((note) => setLocalNote(note as NoteContent))
+    if (conflictNote) {
+      commands.getNote(conflictNote.id)
+        .then((note) => setLocalNote(note as any))
         .catch(handleCommandError);
-    }).then((fn) => { unlisten = fn; });
-    return () => { unlisten?.(); };
-  }, []);
+    }
+  }, [conflictNote]);
 
   async function handleResolve(keepLocal: boolean) {
     if (!conflictNote) return;
     setResolving(true);
-    await invoke("handle_conflict", { id: conflictNote.id, local: keepLocal }).catch(handleCommandError);
-    setConflictNote(null);
-    setLocalNote(null);
-    setResolving(false);
+    try {
+        if (keepLocal) {
+            const local = await db.db.notes.get(conflictNote.id);
+            if (local) {
+                await db.db.notes.update(conflictNote.id, {
+                    synched: false,
+                    updated_at: Math.floor(Date.now() / 1000)
+                });
+            }
+        } else {
+            const workspace = await db.getLoggedWorkspace();
+            if (workspace) {
+                await commands.editNote(conflictNote as any);
+                await db.db.notes.update(conflictNote.id, { synched: true });
+            }
+        }
+        setConflictNote(null);
+        setLocalNote(null);
+    } catch (e) {
+        handleCommandError(e);
+    } finally {
+        setResolving(false);
+    }
   }
 
   if (!conflictNote || !localNote) return null;

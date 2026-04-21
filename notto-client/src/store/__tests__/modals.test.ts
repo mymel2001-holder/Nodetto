@@ -9,7 +9,7 @@ const mockNote: NoteContent = {
   is_folder: false,
   folder_open: false,
   content: "hello",
-  updated_at: new Date(),
+  updated_at: Date.now(),
   deleted: false,
 };
 

@@ -1,32 +1,29 @@
 import { handleCommandError } from "../../lib/errors";
-import { invoke } from "@tauri-apps/api/core";
 import { useGeneral } from "../../store/general";
 import { useModals } from "../../store/modals";
-import { trace } from "@tauri-apps/plugin-log";
-import { Workspace } from "../../types";
+import * as commands from "../../lib/commands";
+import * as db from "../../lib/db";
 
 export default function LogoutWorkspaceConfirmModal() {
-  const { setWorkspace, syncStatus, setAllWorkspaces } = useGeneral();
+  const { setWorkspace, syncStatus, setAllWorkspaces, workspace } = useGeneral();
   const { showLogoutWorkspaceConfirm, setShowLogoutWorkspaceConfirm } = useModals();
 
   async function handleLogout() {
-    await invoke("logout").catch(handleCommandError);
-    trace("logout current workspace...");
+    if (!workspace) return;
+    
+    // In our JS implementation, logout means deleting the workspace from IndexedDB
+    await db.deleteWorkspace(workspace.id).catch(handleCommandError);
 
-    const workspaces = await invoke("get_workspaces")
-      .then((u) => u as Workspace[])
+    let workspaces = await commands.getWorkspaces()
       .catch((e) => { handleCommandError(e); return []; });
 
-    setAllWorkspaces(workspaces);
+    setAllWorkspaces(workspaces as any);
 
     if (workspaces.length > 0) {
-      trace("setting " + workspaces[0].workspace_name + " as logged workspace");
-      setWorkspace(workspaces[0]);
-      await invoke("set_logged_workspace", { workspace_name: workspaces[0].workspace_name });
+      setWorkspace(workspaces[0] as any);
+      await commands.setLoggedWorkspace(workspaces[0].workspace_name);
     } else {
-      trace("No other workspace found, creating a new one");
-      await invoke("create_workspace", { workspace_name: "workspace 1" }).catch(handleCommandError);
-      await invoke("set_logged_workspace", { workspace_name: "workspace 1" });
+      await commands.createWorkspace("workspace 1").catch(handleCommandError);
     }
 
     setShowLogoutWorkspaceConfirm(false);

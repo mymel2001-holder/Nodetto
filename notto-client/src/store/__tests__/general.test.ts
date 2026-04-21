@@ -10,7 +10,7 @@ const mockNote: Note = {
   parent_id: null,
   is_folder: false,
   folder_open: false,
-  updated_at: new Date(),
+  updated_at: Date.now(),
   deleted: false,
 };
 

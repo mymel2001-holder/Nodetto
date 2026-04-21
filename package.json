@@ -1,0 +1,14 @@
+{
+  "name": "nodetto",
+  "version": "1.0.0",
+  "description": "Notto ported to Node.js and PWA",
+  "scripts": {
+    "install:all": "npm install --prefix notto-client && npm install --prefix notto-server-node",
+    "client:dev": "npm run dev --prefix notto-client",
+    "server:dev": "npm run dev --prefix notto-server-node",
+    "build": "npm run build --prefix notto-client"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
