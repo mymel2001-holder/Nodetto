@@ -3,7 +3,7 @@ import { Note, Workspace } from "../types";
 
 /** Mirrors the `SyncStatus` enum from the sync service. */
 export enum syncStatusEnum {
-  Synched = "Synched",
+  Synched = "Synced",
   Syncing = "Syncing",
   Error = "Error",
   Offline = "Offline",

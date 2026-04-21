@@ -3,7 +3,7 @@ import { Note, Workspace } from './db';
 import * as crypt from './crypt';
 
 export enum SyncStatus {
-    Synched = "Synched",
+    Synched = "Synced", // "Synched" typo kept for backwards compatibility with original Notto
     Syncing = "Syncing",
     Error = "Error",
     Offline = "Offline",
@@ -22,14 +22,14 @@ export async function syncNotes(workspace: Workspace, setSyncStatus: (status: Sy
         // 1. Receive latest notes
         const maxReceivedTs = await receiveLatestNotes(workspace, onConflict);
         if (maxReceivedTs !== null) {
-            workspace.last_sync_at = maxReceivedTs + 1;
+            workspace.last_sync_at = maxReceivedTs;
             await db.updateWorkspace(workspace);
         }
 
         // 2. Send latest notes
         const maxSentTs = await sendLatestNotes(workspace, onConflict);
         if (maxSentTs !== null) {
-            workspace.last_sync_at = Math.max(workspace.last_sync_at, maxSentTs + 1);
+            workspace.last_sync_at = Math.max(workspace.last_sync_at, maxSentTs);
             await db.updateWorkspace(workspace);
         }
 
@@ -116,9 +116,11 @@ async function sendLatestNotes(workspace: Workspace, onConflict: (note: any) => 
 
     for (const result of results) {
         if (result.status === 'Ok') {
-            await db.db.notes.update(result.uuid, { synched: true });
-            const n = await db.db.notes.get(result.uuid);
-            if (n) maxTs = Math.max(maxTs, n.updated_at);
+            await db.db.notes.update(result.uuid, { 
+                synched: true,
+                updated_at: result.updated_at
+            });
+            maxTs = Math.max(maxTs, result.updated_at);
         } else if (result.status.Conflict) {
             const conflictedSrvNote = result.status.Conflict;
             const localNote: Note = {

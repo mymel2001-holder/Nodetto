@@ -11,7 +11,7 @@ import * as db from "../../lib/db";
 type AuthMode = "login" | "register";
 
 const SYNC_LABEL: Record<syncStatusEnum, string> = {
-  [syncStatusEnum.Synched]: "Synched",
+  [syncStatusEnum.Synched]: "Synced",
   [syncStatusEnum.Syncing]: "Syncing...",
   [syncStatusEnum.Offline]: "Offline",
   [syncStatusEnum.NotConnected]: "Not connected",
