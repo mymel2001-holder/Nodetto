@@ -1,6 +1,6 @@
 # Nodetto
 
-A modernized version of Notto, ported from Tauri/Rust to a Node.js/Express backend and a PWA frontend. Completely remade while only looking at documentation (and vibe coding it). Licensed under SPL-R5. If you want a more open version, chuck out the main project.
+A modernized version of Notto, ported from Tauri/Rust to a Node.js/Express backend and a PWA frontend. Completely remade while only looking at documentation (and vibe coding it). Licensed under SPL-R5. If you want a more open version, chick out the main project.
 
 ## Architecture
 
